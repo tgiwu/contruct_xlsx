@@ -10,6 +10,7 @@ const CONFIG_PATH = "config\\"
 
 type config struct {
 	AttendanceFolder string `mapstructure:"attendance_folder"`
+	StaffFilePath    string `mapstructure:"staff_file_path"`
 }
 
 var mConf config
@@ -34,14 +35,4 @@ func readConfig() {
 	if err != nil {
 		panic(err)
 	}
-
-	// path, err := os.Getwd()
-
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// path = strings.Replace(path, "\\src","", -1)
-	// mConf.AttendanceFolder = fmt.Sprint(path, "\\", mConf.AttendanceFolder)
-
-	fmt.Printf("config %+v", mConf)
 }

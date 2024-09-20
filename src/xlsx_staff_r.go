@@ -1,0 +1,116 @@
+package main
+
+import (
+	"reflect"
+	"strconv"
+
+	"github.com/tealeg/xlsx/v3"
+)
+
+const COL_STAFF_NAME = "人员姓名"
+const COL_STAFF_SALARY = "薪资"
+const COL_STAFF_QUIT_TIME = "离职时间"
+const COL_STAFF_ACCOUNT_NAME = "代收人姓名"
+const COL_STAFF_ACCOUNT = "收款账号"
+const COL_STAFF_BACKUP = "备注"
+const COL_STAFF_LOCAL = "区域"
+
+type Staff struct {
+	Name    string
+	Salary  int
+	Account string
+	ToName  string
+	Local   string
+	BackUp  BackUpStaff
+}
+
+type BackUpStaff struct {
+	BackUpSal []BackUpStaffSalary `json:"salary"`
+}
+
+type BackUpStaffSalary struct {
+	Month []int `json:"month"`
+	Sal   int   `json:"sal"`
+}
+
+func readFromXlsxStaff(staffMap *map[string][]Staff) error {
+	file, err := xlsx.OpenFile(mConf.StaffFilePath)
+	if err != nil {
+		return err
+	}
+
+	for _, sheet := range file.Sheets {
+
+		if sheet.Name == "员工详情（全部）" {
+			continue
+		}
+		headerMap := make(map[int]string)
+
+		for i := range sheet.MaxRow {
+			row, err := sheet.Row(i)
+
+			if err != nil {
+				return err
+			}
+
+			var local string
+			var name string
+			var staff Staff
+
+			visitRow(row, &local, &name, &headerMap, &staff)
+
+			if len(staff.Name) == 0 {
+				continue
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func visitRow(row *xlsx.Row, local *string, name *string, headerMap *map[int]string, staff *Staff) {
+	for i := range row.Sheet.MaxCol {
+		str, err := row.GetCell(i).FormattedValue()
+		if err != nil {
+			continue
+		}
+		if len(*headerMap) == 0 {
+
+			switch str {
+			case COL_STAFF_NAME:
+				(*headerMap)[i] = "Name"
+			case COL_STAFF_SALARY:
+				(*headerMap)[i] = "Salary"
+			case COL_STAFF_QUIT_TIME:
+				(*headerMap)[i] = "QuitTime"
+			case COL_STAFF_ACCOUNT_NAME:
+				(*headerMap)[i] = "ToName"
+			case COL_STAFF_ACCOUNT:
+				(*headerMap)[i] = "Account"
+			case COL_STAFF_BACKUP:
+				(*headerMap)[i] = "BackUp"
+			case COL_STAFF_LOCAL:
+				(*headerMap)[i] = "Local"
+			}
+		} else {
+			val, _ := strconv.Atoi(str)
+			refType := reflect.TypeOf(*staff)
+			if refType.Kind() != reflect.Struct {
+				panic("not struct")
+			}
+
+			if fieldObj, ok := refType.FieldByName((*headerMap)[i]); ok {
+				if fieldObj.Type.Kind() == reflect.Int {
+					reflect.ValueOf(staff).Elem().FieldByName((*headerMap)[i]).SetInt(int64(val))
+
+				}
+				if fieldObj.Type.Kind() == reflect.String {
+					reflect.ValueOf(staff).Elem().FieldByName((*headerMap)[i]).SetString(str)
+				}
+			}
+		}
+	}
+	name = &staff.Name
+	local = &staff.Local
+}

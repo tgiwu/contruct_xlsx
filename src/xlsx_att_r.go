@@ -1,0 +1,124 @@
+package main
+
+import (
+	"fmt"
+	"reflect"
+	"strconv"
+
+	"github.com/tealeg/xlsx/v3"
+)
+
+type Attendance struct {
+	Id       int   
+	Name     string 
+	Duty     int    
+	Actal    int    
+	Temp_8   int    
+	Temp_12  int    
+	Temp_4   int    
+	Sickness int    
+	Backup   string 
+}
+
+func readFormXlsxAttendance(path string, name *string, attendances *[]Attendance) {
+	file, err := xlsx.OpenFile(path)
+	if err != nil {
+		return
+	}
+
+	fmt.Println("sheet len: ", len(file.Sheets))
+
+	for _, sheet := range file.Sheets {
+		var headerMap = map[int]string{}
+		fmt.Printf("mix row %d, col %d\n", sheet.MaxRow, sheet.MaxCol)
+		for index := range sheet.MaxRow {
+			attendance := Attendance{Id: -1}
+			row, err := sheet.Row(index)
+			if err != nil {
+				continue
+			}
+
+			err = visitorRow(row, &attendance, &headerMap)
+
+			if err != nil {
+				continue
+			}
+
+			// fmt.Printf("header: %v\n", headerMap)
+			fmt.Printf("attendance: %+v\n", attendance)
+			if len(*name) == 0 && len(sheet.Name) !=0 {
+				*name = sheet.Name
+			}
+			if attendance.Id != -1 {
+				*attendances = append(*attendances, attendance)
+			}
+		}
+	}
+}
+
+func visitorRow(row *xlsx.Row, attendance *Attendance, headerMap *map[int]string) error {
+	isReadHeader := len(*headerMap) == 0
+
+	for i := 0; i < row.Sheet.MaxCol; i++ {
+		str, err := row.GetCell(i).FormattedValue()
+		if err != nil {
+			return err
+		}
+
+		if isReadHeader {
+			switch str {
+			case "序号":
+				(*headerMap)[i] = "Id"
+			case "姓名":
+				(*headerMap)[i] = "Name"
+			case "应出勤":
+				(*headerMap)[i] = "Duty"
+			case "实出勤":
+				(*headerMap)[i] = "Actal"
+			case "临勤（8）":
+				(*headerMap)[i] = "Temp_8"
+			case "临勤（12）":
+				(*headerMap)[i] = "Temp_12"
+			case "临勤（4）":
+				(*headerMap)[i] = "Temp_4"
+			case "病假":
+				(*headerMap)[i] = "Sickness"
+			case "备勤":
+				(*headerMap)[i] = "Backup"
+			}
+		} else {
+			val, _ := strconv.Atoi(str)
+			refType := reflect.TypeOf(*attendance)
+			if refType.Kind() != reflect.Struct {
+				panic("not struct")
+			}
+
+			if fieldObj, ok := refType.FieldByName((*headerMap)[i]); ok {
+				if fieldObj.Type.Kind() == reflect.Int {
+					reflect.ValueOf(attendance).Elem().FieldByName((*headerMap)[i]).SetInt(int64(val))
+
+				}
+				if fieldObj.Type.Kind() == reflect.String {
+					reflect.ValueOf(attendance).Elem().FieldByName((*headerMap)[i]).SetString(str)
+
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// func rowVisitor(r *xlsx.Row) (err error) {
+// 	err = r.ForEachCell(cellVisitor)
+// 	return
+// }
+
+// func cellVisitor(c *xlsx.Cell) error {
+// 	value, err := c.FormattedValue()
+// 	if err!= nil {
+// 		fmt.Println(err.Error())
+// 	} else {
+// 		fmt.Println("cell value", value)
+// 	}
+// 	return err
+// }

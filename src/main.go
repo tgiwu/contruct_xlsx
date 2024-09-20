@@ -8,22 +8,25 @@ func main() {
 
 	readConfig()
 
-	var files *[]string = new([]string)
-	err := listXlsxFile(files)
+	var filePaths *[]string = new([]string)
+	err := listXlsxFile(filePaths)
 
 	if err != nil {
 		panic(err)
 	}
 
-	if len(*files) == 0 {
+	if len(*filePaths) == 0 {
 		fmt.Println("Attendance folder is empty over")
 	}
 
-	for _, path := range *files {
-		var attendance *[]Attendance
+	attMap := make(map[string][]Attendance)
+	for _, path := range *filePaths {
+		var attendance []Attendance
 		var name string
-		readFormXlsxAttendance(path, &name, attendance)
-
+		readFormXlsxAttendance(path, &name, &attendance)
+		if len(name) != 0 && len(attendance) != 0 {
+			attMap[name] = attendance
+		}
 		fmt.Println("sheet name : ", name, " attendances ", attendance)
 	}
 
