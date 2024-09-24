@@ -9,18 +9,19 @@ import (
 )
 
 type Attendance struct {
-	Id       int   
-	Name     string 
-	Duty     int    
-	Actal    int    
-	Temp_8   int    
-	Temp_12  int    
-	Temp_4   int    
-	Sickness int    
-	Backup   string 
+	Id       int
+	Name     string
+	Duty     int
+	Actal    int
+	Temp_8   int
+	Temp_12  int
+	Temp_4   int
+	Sickness int
+	Backup   string
+	Postion  string
 }
 
-func readFormXlsxAttendance(path string, name *string, attendances *[]Attendance) {
+func readFormXlsxAttendance(path string, c chan Attendance, finishC chan string) {
 	file, err := xlsx.OpenFile(path)
 	if err != nil {
 		return
@@ -44,16 +45,15 @@ func readFormXlsxAttendance(path string, name *string, attendances *[]Attendance
 				continue
 			}
 
-			// fmt.Printf("header: %v\n", headerMap)
-			fmt.Printf("attendance: %+v\n", attendance)
-			if len(*name) == 0 && len(sheet.Name) !=0 {
-				*name = sheet.Name
-			}
+			attendance.Postion = sheet.Name
 			if attendance.Id != -1 {
-				*attendances = append(*attendances, attendance)
+				// fmt.Printf("attendance: %+v\n", attendance)
+				c <- attendance
 			}
 		}
 	}
+
+	finishC <- path
 }
 
 func visitorRow(row *xlsx.Row, attendance *Attendance, headerMap *map[int]string) error {

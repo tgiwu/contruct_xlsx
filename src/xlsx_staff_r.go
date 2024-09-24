@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"reflect"
 	"strconv"
 
@@ -15,13 +16,16 @@ const COL_STAFF_ACCOUNT = "收款账号"
 const COL_STAFF_BACKUP = "备注"
 const COL_STAFF_LOCAL = "区域"
 
+const FINISH_SIGNAL_STAFF = "staff finish!!"
+
 type Staff struct {
-	Name    string
-	Salary  int
-	Account string
-	ToName  string
-	Local   string
-	BackUp  BackUpStaff
+	Name     string
+	Salary   int
+	Account  string
+	ToName   string
+	Local    string
+	QuitTime string
+	BackUp   BackUpStaff
 }
 
 type BackUpStaff struct {
@@ -33,7 +37,7 @@ type BackUpStaffSalary struct {
 	Sal   int   `json:"sal"`
 }
 
-func readFromXlsxStaff(staffMap *map[string][]Staff) error {
+func readFromXlsxStaff(staffChan chan Staff, finishChan chan string) error {
 	file, err := xlsx.OpenFile(mConf.StaffFilePath)
 	if err != nil {
 		return err
@@ -41,7 +45,7 @@ func readFromXlsxStaff(staffMap *map[string][]Staff) error {
 
 	for _, sheet := range file.Sheets {
 
-		if sheet.Name == "员工详情（全部）" {
+		if sheet.Name != "员工详情（全部）" {
 			continue
 		}
 		headerMap := make(map[int]string)
@@ -53,29 +57,35 @@ func readFromXlsxStaff(staffMap *map[string][]Staff) error {
 				return err
 			}
 
-			var local string
-			var name string
 			var staff Staff
 
-			visitRow(row, &local, &name, &headerMap, &staff)
+			visitRow(row, &headerMap, &staff)
 
 			if len(staff.Name) == 0 {
 				continue
 			}
+
+			staffChan <- staff
 		}
 
+		fmt.Printf("%+v \n", headerMap)
+
 	}
+
+	finishChan <- FINISH_SIGNAL_STAFF
 
 	return nil
 }
 
-func visitRow(row *xlsx.Row, local *string, name *string, headerMap *map[int]string, staff *Staff) {
+func visitRow(row *xlsx.Row, headerMap *map[int]string, staff *Staff) {
+	isReadHeader := len(*headerMap) == 0
+
 	for i := range row.Sheet.MaxCol {
 		str, err := row.GetCell(i).FormattedValue()
 		if err != nil {
 			continue
 		}
-		if len(*headerMap) == 0 {
+		if isReadHeader {
 
 			switch str {
 			case COL_STAFF_NAME:
@@ -111,6 +121,4 @@ func visitRow(row *xlsx.Row, local *string, name *string, headerMap *map[int]str
 			}
 		}
 	}
-	name = &staff.Name
-	local = &staff.Local
 }
