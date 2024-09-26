@@ -14,7 +14,7 @@ const COL_STAFF_QUIT_TIME = "离职时间"
 const COL_STAFF_ACCOUNT_NAME = "代收人姓名"
 const COL_STAFF_ACCOUNT = "收款账号"
 const COL_STAFF_BACKUP = "备注"
-const COL_STAFF_LOCAL = "区域"
+const COL_STAFF_AREA = "区域"
 
 const FINISH_SIGNAL_STAFF = "staff finish!!"
 
@@ -23,7 +23,7 @@ type Staff struct {
 	Salary   int
 	Account  string
 	ToName   string
-	Local    string
+	Area     string
 	QuitTime string
 	BackUp   BackUpStaff
 }
@@ -40,6 +40,8 @@ type BackUpStaffSalary struct {
 func readFromXlsxStaff(staffChan chan Staff, finishChan chan string) error {
 	file, err := xlsx.OpenFile(mConf.StaffFilePath)
 	if err != nil {
+		fmt.Println(err)
+		finishChan <- err.Error()
 		return err
 	}
 
@@ -100,8 +102,8 @@ func visitRow(row *xlsx.Row, headerMap *map[int]string, staff *Staff) {
 				(*headerMap)[i] = "Account"
 			case COL_STAFF_BACKUP:
 				(*headerMap)[i] = "BackUp"
-			case COL_STAFF_LOCAL:
-				(*headerMap)[i] = "Local"
+			case COL_STAFF_AREA:
+				(*headerMap)[i] = "Area"
 			}
 		} else {
 			val, _ := strconv.Atoi(str)

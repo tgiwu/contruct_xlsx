@@ -1,2 +1,12 @@
-attendance_folder: "..\\attendance"
-staff_file_path: "D:\\查询表\\全体人员信息.xlsx"
+env_win: 
+  config:
+    attendance_folder: "..\\attendance"
+    staff_file_path: "D:\\查询表\\全体人员信息.xlsx"
+    output_path: "..\\output"
+    ignore: ["雷晓利"]
+env_lin:
+  config:
+    attendance_folder: "../attendance"
+    staff_file_path: "/Users/yangzhang/Downloads/工作/全体人员信息.xlsx"
+    output_path: "../output"
+    ignore: ["雷晓利"]

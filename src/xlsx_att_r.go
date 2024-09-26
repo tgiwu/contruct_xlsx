@@ -9,16 +9,17 @@ import (
 )
 
 type Attendance struct {
-	Id       int
-	Name     string
-	Duty     int
-	Actal    int
-	Temp_8   int
-	Temp_12  int
-	Temp_4   int
-	Sickness int
-	Backup   string
-	Postion  string
+	Id       int    //序号
+	Name     string //姓名
+	Duty     int    //应出勤
+	Actal    int    //实际出勤
+	Temp_8   int    //8小时临勤
+	Temp_12  int    //12小时临勤
+	Temp_4   int    //4小时临勤
+	Sickness int    //病假
+	Special  int    //特殊费用
+	Backup   string //备注
+	Postion  string //区域
 }
 
 func readFormXlsxAttendance(path string, c chan Attendance, finishC chan string) {
@@ -83,6 +84,8 @@ func visitorRow(row *xlsx.Row, attendance *Attendance, headerMap *map[int]string
 				(*headerMap)[i] = "Temp_4"
 			case "病假":
 				(*headerMap)[i] = "Sickness"
+			case "特殊费用":
+				(*headerMap)[i] = "Special"
 			case "备勤":
 				(*headerMap)[i] = "Backup"
 			}

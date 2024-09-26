@@ -5,8 +5,9 @@ import (
 	"sync"
 )
 
-var attMap = make(map[string][]Attendance)
-var staffMap = make(map[string][]Staff)
+var attMap = make(map[string]map[string]Attendance)
+var staffMap = make(map[string]map[string]Staff)
+var salaryMap = make(map[string]map[string]Salary)
 var wg sync.WaitGroup
 
 func main() {
@@ -29,8 +30,9 @@ func main() {
 	var finishChan = make(chan string)
 
 	lockCount := len(*filePaths) //attendance
-	lockCount += 1 //staff
-	wg.Add(lockCount)     
+	lockCount += 1               //staff
+	// lockCount += 1               //handle
+	wg.Add(lockCount)
 
 	go handleChan(attChan, finishChan, staffChan, &wg, lockCount)
 
@@ -48,6 +50,13 @@ func main() {
 	// fmt.Println("----------------------------------")
 	fmt.Printf(" %+v \n", staffMap)
 
+	err = buildSalaries(staffMap, attMap, &salaryMap)
+
+	if err != nil {
+		panic("build salary map failed " + err.Error())
+	}
+
+	fmt.Printf("salary map %+v", salaryMap)
 	// wb := xlsx.NewFile()
 
 	// sheet, err := wb.AddSheet("sheet_1")
@@ -72,18 +81,18 @@ func handleChan(attChan chan Attendance, finishChan chan string, staffChan chan 
 		case att := <-attChan:
 			attendances, found := attMap[att.Postion]
 			if !found {
-				attendances = make([]Attendance, 0)
+				attendances = make(map[string]Attendance, 0)
 			}
 
-			attendances = append(attendances, att)
+			attendances[att.Name] = att
 			attMap[att.Postion] = attendances
 		case staff := <-staffChan:
-			staffs, found := staffMap[staff.Local]
+			staffs, found := staffMap[staff.Area]
 			if !found {
-				staffs = make([]Staff, 0)
+				staffs = make(map[string]Staff, 0)
 			}
-			staffs = append(staffs, staff)
-			staffMap[staff.Local] = staffs
+			staffs[staff.Name] = staff
+			staffMap[staff.Area] = staffs
 
 		case signal := <-finishChan:
 
