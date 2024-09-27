@@ -48,7 +48,7 @@ func main() {
 
 	// fmt.Printf(" %+v \n", attMap)
 	// fmt.Println("----------------------------------")
-	fmt.Printf(" %+v \n", staffMap)
+	// fmt.Printf(" %+v \n", staffMap)
 
 	err = buildSalaries(staffMap, attMap, &salaryMap)
 

@@ -42,9 +42,9 @@ func buildSalaryItem(staff Staff, attendance Attendance, salary *Salary) error {
 	salary.Standard = staff.Salary
 	if attendance.Duty <= attendance.Actal {
 		salary.NetPay = staff.Salary
+		salary.OvertimePay = 100 * (attendance.Actal - attendance.Duty)
 	} else {
 		salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
-		salary.OvertimePay = 100 * (attendance.Actal - attendance.Duty)
 	}
 
 	if attendance.Temp_12 != 0 || attendance.Temp_8 != 0 || attendance.Temp_4 != 0 {
@@ -64,28 +64,30 @@ func buildSalaryItem(staff Staff, attendance Attendance, salary *Salary) error {
 	return nil
 }
 
-func buildSalaries(staffs map[string]map[string]Staff, attendances map[string]map[string]Attendance, 
+func buildSalaries(staffs map[string]map[string]Staff, attendances map[string]map[string]Attendance,
 	salaryMap *map[string]map[string]Salary) error {
-	
+
 	for area, atts := range attendances {
 		staffMap, found := staffs[area]
 		if !found {
 			return SalaryBuildError{msg: fmt.Sprintf("Can not find area %s in staffs!!", area)}
 		}
 
+	label:
 		for name, attendance := range atts {
 
 			if len(mConf.Ignore) != 0 {
-				for _, str := range mConf.Ignore {
-					if str == name {
+				for _, ignore := range mConf.Ignore {
+					if ignore == name {
 						//ignore
-						continue
+						continue label
 					}
 				}
 			}
 
 			staff, found := staffMap[name]
 			if !found {
+				fmt.Printf("staff %+v", staffMap)
 				return SalaryBuildError{msg: fmt.Sprintf("Can not find staff named %s in staffs!!", name)}
 			}
 
@@ -106,7 +108,6 @@ func buildSalaries(staffs map[string]map[string]Staff, attendances map[string]ma
 			}
 		}
 	}
-	
-	
+
 	return nil
 }

@@ -13,6 +13,8 @@ type config struct {
 	AttendanceFolder string   `mapstructure:"attendance_folder"`
 	StaffFilePath    string   `mapstructure:"staff_file_path"`
 	Ignore           []string `mapstructure:"ignore"`
+	OutputPath       string   `mapstructure:"output_path"`
+	FileName string `mapstructure:"file_name"`
 }
 
 type envWin struct {

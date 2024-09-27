@@ -69,9 +69,6 @@ func readFromXlsxStaff(staffChan chan Staff, finishChan chan string) error {
 
 			staffChan <- staff
 		}
-
-		fmt.Printf("%+v \n", headerMap)
-
 	}
 
 	finishChan <- FINISH_SIGNAL_STAFF

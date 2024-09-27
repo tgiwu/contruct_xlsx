@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
+	"sync"
 
 	"github.com/tealeg/xlsx/v3"
 )
@@ -18,11 +20,39 @@ const TYPE_ROW_NORMAL = 2
 const TYPE_ROW_NORMAL_GREY = 3
 const TYPE_ROW_TOTAL = 4
 
-func checkSheet(name string, wb *xlsx.File) (sheet *xlsx.Sheet, ok bool) {
+func createSalaryXlsx(salaryMap map[string]map[string]Salary) error {
+	wb := xlsx.NewFile()
+
+	defer wb.Save(filepath.Join(mConf.OutputPath, mConf.FileName))
+
+	var fcwg sync.WaitGroup
+
+	fcwg.Add(len(salaryMap))
+
+	for i := 0; i < len(salaryMap); i++ {
+		go createSalarySheet()
+	}
+
+	fcwg.Wait()
+
+	return nil
+}
+
+func createSalarySheet(wb *xlsx.File, sheetName string, salary map[string]Salary) error {
+	sheet, found := checkSheet(wb, sheetName)
+
+	return nil
+}
+
+func checkOrCreateSheet(wb *xlsx.File, name string) (sheet *xlsx.Sheet, ok bool) {
 	sheet, ok = wb.Sheet[name]
 	if !ok {
 		fmt.Println("Sheet ", name, " not exist")
-		return
+		sheet, err := wb.AddSheet(name)
+		if err != nil {
+			panic(err)
+		}
+		return 
 	}
 	fmt.Println("Max row in sheet: ", sheet.MaxRow)
 	return
