@@ -3,7 +3,8 @@ package main
 import (
 	"fmt"
 	"path/filepath"
-	"sync"
+
+	// "sync"
 
 	"github.com/tealeg/xlsx/v3"
 )
@@ -20,28 +21,129 @@ const TYPE_ROW_NORMAL = 2
 const TYPE_ROW_NORMAL_GREY = 3
 const TYPE_ROW_TOTAL = 4
 
+type EmptyError struct {
+	msg string
+}
+
+func (ee EmptyError) Error() string {
+	return ee.msg
+}
+
 func createSalaryXlsx(salaryMap map[string]map[string]Salary) error {
 	wb := xlsx.NewFile()
 
-	defer wb.Save(filepath.Join(mConf.OutputPath, mConf.FileName))
+	// var fcwg sync.WaitGroup
 
-	var fcwg sync.WaitGroup
+	// fcwg.Add(len(salaryMap))
 
-	fcwg.Add(len(salaryMap))
-
-	for i := 0; i < len(salaryMap); i++ {
-		go createSalarySheet()
+	for name, salaries := range salaryMap {
+		createSalarySheet(wb, name, salaries)
 	}
 
-	fcwg.Wait()
+	// fcwg.Wait()
 
+	err := wb.Save(filepath.Join(mConf.OutputPath, mConf.FileName))
+
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
 	return nil
 }
 
 func createSalarySheet(wb *xlsx.File, sheetName string, salary map[string]Salary) error {
-	sheet, found := checkSheet(wb, sheetName)
+	sheet, _ := checkOrCreateSheet(wb, sheetName)
+
+	list := make([]Salary, len(salary)+1)
+
+	standardTotal := 0
+	netpayTotal := 0
+	accountTotal := 0
+	for _, item := range salary {
+		list[item.Id-1] = item
+		standardTotal += item.Standard
+		netpayTotal += item.NetPay
+		accountTotal += item.Account
+	}
+
+	totalSalary := Salary{Name: "合计",
+		Standard: standardTotal,
+		NetPay:   netpayTotal,
+		Account:  accountTotal}
+
+	list[len(salary)] = totalSalary
+
+	err := writeTitle(sheet, getTitle(sheetName, mConf.Month, mConf.Year))
+
+	if err != nil {
+		return err
+	}
+
+	err = writeHeader(sheet, sheetName, mConf.Headers)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func writeRow(sheet *xlsx.Sheet, title string, salaries []Salary) error {
+	if len(salaries) == 0 {
+		return EmptyError{msg: "salary is empty " + title}
+	}
+
+	// for i, salary := range salaries {
+	// 	row, err := sheet.Row(salary.Id + 2)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+
+	// cell := row.GetCell(i)
+	// switch i {
+
+	// }
+	// }
 
 	return nil
+}
+
+func writeHeader(sheet *xlsx.Sheet, title string, headers []string) error {
+
+	if len(headers) == 0 {
+		return EmptyError{msg: fmt.Sprintf("empty header %s \n", title)}
+	}
+	row, err := sheet.Row(1)
+
+	if err != nil {
+		return err
+	}
+
+	for i, header := range headers {
+		cell := row.GetCell(i)
+		cell.SetValue(header)
+		cell.SetStyle(getStyle(TYPE_ROW_HEADER))
+	}
+
+	return nil
+}
+
+func writeTitle(sheet *xlsx.Sheet, title string) error {
+	titleCell, err := sheet.Cell(0, 0)
+
+	if err != nil {
+		fmt.Println("write title error ", title, err.Error())
+		return err
+	}
+
+	titleCell.Merge(11, 0)
+	titleCell.SetValue(title)
+	titleCell.SetStyle(getStyle(STYLE_TYPE_TITLE))
+
+	return nil
+}
+
+func getTitle(sheetName string, month int, year int) string {
+	return fmt.Sprintf("%s%d年%d月工资", sheetName, year, month)
 }
 
 func checkOrCreateSheet(wb *xlsx.File, name string) (sheet *xlsx.Sheet, ok bool) {
@@ -52,7 +154,7 @@ func checkOrCreateSheet(wb *xlsx.File, name string) (sheet *xlsx.Sheet, ok bool)
 		if err != nil {
 			panic(err)
 		}
-		return 
+		return sheet, true
 	}
 	fmt.Println("Max row in sheet: ", sheet.MaxRow)
 	return

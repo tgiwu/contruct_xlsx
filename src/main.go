@@ -57,6 +57,8 @@ func main() {
 	}
 
 	fmt.Printf("salary map %+v", salaryMap)
+
+	createSalaryXlsx(salaryMap)
 	// wb := xlsx.NewFile()
 
 	// sheet, err := wb.AddSheet("sheet_1")

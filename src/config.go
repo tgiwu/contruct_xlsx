@@ -14,30 +14,31 @@ type config struct {
 	StaffFilePath    string   `mapstructure:"staff_file_path"`
 	Ignore           []string `mapstructure:"ignore"`
 	OutputPath       string   `mapstructure:"output_path"`
-	FileName string `mapstructure:"file_name"`
-}
-
-type envWin struct {
-	Conf config `mapstructure:"config"`
-}
-
-type envLin struct {
-	Conf config `mapstructure:"config"`
-}
-
-type allConf struct {
-	EnvWin envWin `mapstructure:"env_win"`
-	EnvLin envLin `mapstructure:"env_lin"`
+	FileName         string   `mapstructure:"file_name"`
+	Month            int      `mapstructure:"month"`
+	Year             int      `mapstructure:"year"`
+	Headers          []string `mapstructure:"headers"`
 }
 
 var mConf config
-var mAllConf allConf
 
 func readConfig() {
 
+	configName := "config"
+	switch runtime.GOOS {
+	case "windows":
+		configName += "_win"
+	case "linux":
+		configName += "_lin"
+	case "darwin":
+		configName += "_lin"
+	default:
+		fmt.Println("unsupport os ", runtime.GOOS)
+	}
+
 	vip := viper.New()
 	vip.AddConfigPath(CONFIG_PATH)
-	vip.SetConfigName("config.yaml")
+	vip.SetConfigName(configName + ".yaml")
 	vip.SetConfigType("yaml")
 
 	if err := vip.ReadInConfig(); err != nil {
@@ -48,24 +49,13 @@ func readConfig() {
 		}
 	}
 
-	err := vip.Unmarshal(&mAllConf)
-
-	switch runtime.GOOS {
-	case "windows":
-		mConf = mAllConf.EnvWin.Conf
-	case "linux":
-		mConf = mAllConf.EnvLin.Conf
-	case "darwin":
-		mConf = mAllConf.EnvLin.Conf
-	default:
-		fmt.Println("unsupport os ", runtime.GOOS)
-	}
+	err := vip.Unmarshal(&mConf)
 
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Printf("config %+v \n", mAllConf)
+	fmt.Printf("config %+v \n", mConf)
 
 	fmt.Printf("current config %+v \n", mConf)
 }
