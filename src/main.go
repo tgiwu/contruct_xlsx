@@ -31,7 +31,8 @@ func main() {
 
 	lockCount := len(*filePaths) //attendance
 	lockCount += 1               //staff
-	// lockCount += 1               //handle
+	// lockCount += 1  
+	fmt.Println("lock count ", lockCount)             //handle
 	wg.Add(lockCount)
 
 	go handleChan(attChan, finishChan, staffChan, &wg, lockCount)
