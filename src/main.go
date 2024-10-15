@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"sync"
+
+	"github.com/unidoc/unioffice/common/license"
 )
 
 var attMap = make(map[string]map[string]Attendance)
@@ -13,9 +15,13 @@ var wg sync.WaitGroup
 func main() {
 
 	readConfig()
+	err := license.SetMeteredKey(mConf.MeteredKey)
+	if err != nil {
+		panic(err)
+	}
 
 	var filePaths *[]string = new([]string)
-	err := listXlsxFile(filePaths)
+	err = listXlsxFile(filePaths)
 
 	if err != nil {
 		panic(err)
@@ -57,9 +63,9 @@ func main() {
 		panic("build salary map failed " + err.Error())
 	}
 
-	fmt.Printf("salary map %+v", salaryMap)
+	// fmt.Printf("salary map %+v", salaryMap)
 
-	createSalaryXlsx(salaryMap)
+	constructXlsx(salaryMap)
 	// wb := xlsx.NewFile()
 
 	// sheet, err := wb.AddSheet("sheet_1")

@@ -149,3 +149,17 @@ func sortSalaryById(salaries map[string]Salary) []Salary {
 
 	return salariesList
 }
+
+func pos(row int, col int) string {
+	first := int('A')
+
+	if row < 0 {
+		return string(byte(first + col))
+	}
+
+	if col < 0 {
+		return fmt.Sprint(row + 1)
+	}
+
+	return fmt.Sprintf("%s%d", string(byte(first+col)), row+1)
+}

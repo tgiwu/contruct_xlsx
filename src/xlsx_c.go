@@ -7,6 +7,7 @@ import (
 
 	// "sync"
 
+	"github.com/360EntSecGroup-Skylar/excelize"
 	"github.com/tealeg/xlsx/v3"
 )
 
@@ -23,6 +24,7 @@ const TYPE_ROW_NORMAL_GREY = 3
 const TYPE_ROW_TOTAL = 4
 
 var styleMap map[int]*xlsx.Style
+var styleM map[int]int
 
 type EmptyError struct {
 	msg string
@@ -30,6 +32,177 @@ type EmptyError struct {
 
 func (ee EmptyError) Error() string {
 	return ee.msg
+}
+
+func constructXlsx(salaryMap map[string]map[string]Salary) error {
+	excel := excelize.NewFile()
+
+	for name, salaries := range salaryMap {
+		constructSalarySheet(excel, name, salaries)
+	}
+
+	excel.DeleteSheet("Sheet1")
+
+	delFileIfExist(mConf.OutputPath, mConf.FileName)
+	excel.SaveAs(filepath.Join(mConf.OutputPath, mConf.FileName))
+	return nil
+}
+
+func constructSalarySheet(excel *excelize.File, sheetName string, salary map[string]Salary) {
+	excel.NewSheet(sheetName)
+
+	list := make([]Salary, len(salary)+1)
+	total := Salary{}
+	calcTotal(&salary, &list, &total)
+
+	fillTitle(excel, sheetName, getTitle(sheetName, mConf.Month, mConf.Year))
+	fillHeader(excel, sheetName, mConf.Headers)
+	fillRow(excel, sheetName, sortSalaryById(salaryMap[sheetName]))
+	fillTotal(excel, sheetName, len(salary)+2, total)
+
+}
+
+func calcTotal(salary *map[string]Salary, list *[]Salary, total *Salary) {
+
+	standardTotal := 0
+	netpayTotal := 0
+	accountTotal := 0
+	for _, item := range *salary {
+		(*list)[item.Id-1] = item
+		standardTotal += item.Standard
+		netpayTotal += item.NetPay
+		accountTotal += item.Account
+	}
+
+	total.Name = "合计"
+	total.Standard = standardTotal
+	total.NetPay = netpayTotal
+	total.Account = accountTotal
+}
+
+func fillTitle(excel *excelize.File, sheetName string, title string) {
+	excel.MergeCell(sheetName, pos(0, 0), pos(0, len(mConf.Headers)-1))
+	excel.SetCellValue(sheetName, pos(0, 0), title)
+	excel.SetCellStyle(sheetName, pos(0, 0), pos(0, len(mConf.Headers)-1), cellStyle(excel, TYPE_ROW_TITLE))
+}
+
+func fillHeader(excel *excelize.File, sheetName string, headers []string) {
+	for i, header := range headers {
+		excel.SetCellValue(sheetName, pos(1, i), header)
+
+		switch {
+		case header == "备注":
+			excel.SetColWidth(sheetName, pos(-1, i), pos(-1, i), 27.75)
+		case header == "序号":
+			excel.SetColWidth(sheetName, pos(-1, i), pos(-1, i), 7)
+		case len(header) < 4:
+			excel.SetColWidth(sheetName, pos(-1, i), pos(-1, i), 8.33)
+		default:
+			excel.SetColWidth(sheetName, pos(-1, i), pos(-1, i), 11.33)
+		}
+	}
+	excel.SetCellStyle(sheetName, pos(1, 0), pos(1, len(mConf.Headers)-1), cellStyle(excel, TYPE_ROW_HEADER))
+}
+
+func fillRow(excel *excelize.File, sheetName string, salaries []Salary) {
+	for i, salary := range salaries {
+		for j, s := range mConf.Headers {
+			v := reflect.ValueOf(salary)
+			if v.Kind() == reflect.Struct {
+				value := v.FieldByName(mConf.HeadersMap[s])
+				if value.Kind() == reflect.String {
+					excel.SetCellStr(sheetName, pos(i+2, j), value.String())
+				} else {
+					excel.SetCellInt(sheetName, pos(i+2, j), int(value.Int()))
+				}
+			}
+			if i%2 == 0 {
+				excel.SetCellStyle(sheetName, pos(i+2, j), pos(i+2, j), cellStyle(excel, STYLE_TYPE_NORMAL))
+			} else {
+				excel.SetCellStyle(sheetName, pos(i+2, j), pos(i+2, j), cellStyle(excel, STYLE_TYPE_NORMAL_GREY))
+			}
+		}
+
+	}
+}
+
+func fillTotal(excel *excelize.File, sheetName string, row int, total Salary) {
+	excel.MergeCell(sheetName, pos(row, 0), pos(row, 3))
+	excel.SetCellValue(sheetName, pos(row, 0), total.Name)
+	excel.SetCellStyle(sheetName, pos(row, 0), pos(row, 3), cellStyle(excel, TYPE_ROW_TOTAL))
+
+	excel.SetCellValue(sheetName, pos(row, 4), total.Standard)
+	excel.SetCellValue(sheetName, pos(row, 5), total.NetPay)
+	excel.SetCellStyle(sheetName, pos(row, 4), pos(row, len(mConf.Headers)-3), cellStyle(excel, TYPE_ROW_NORMAL))
+
+	excel.SetCellValue(sheetName, pos(row, len(mConf.Headers)-2), total.Account)
+	excel.SetCellStyle(sheetName, pos(row, len(mConf.Headers)-2), pos(row, len(mConf.Headers)-2), cellStyle(excel, TYPE_ROW_TOTAL))
+
+	excel.SetCellStyle(sheetName, pos(row, len(mConf.Headers)-1), pos(row, len(mConf.Headers)-1), cellStyle(excel, TYPE_ROW_TOTAL))
+}
+
+func cellStyle(excel *excelize.File, styleNo int) int {
+
+	if styleM == nil {
+		styleM = make(map[int]int)
+	}
+
+	if styleId, found := styleM[styleNo]; found {
+		return styleId
+	}
+	styleStr := ""
+	switch styleNo {
+	case STYLE_TYPE_TITLE:
+		styleStr = `{
+		"border":[{"type":"left","color":"000000","style":1},
+			{"type":"top","color":"000000","style":1},
+			{"type":"right","color":"000000","style":1},
+			{"type":"bottom","color":"000000","style":1}],
+		"fill":{"type":"gradient","color":["#A5A5A5","#A5A5A5"], "shading":1},
+		"alignment":{"horizontal":"center", "vertical":"center"},
+		"font":{"bold":true, "italic":false, "family":"Microsoft YaHei", "size":16, "color":"#FFFFFF"}}`
+	case STYLE_TYPE_HEADER:
+		styleStr = `{
+			"border":[{"type":"left","color":"000000","style":1},
+				{"type":"top","color":"000000","style":1},
+				{"type":"right","color":"000000","style":1},
+				{"type":"bottom","color":"000000","style":1}],
+			"fill":{"type":"gradient","color":["#A5A5A5","#A5A5A5"], "shading":1},
+			"alignment":{"horizontal":"center", "vertical":"center"},
+			"font":{"bold":true, "italic":false, "family":"Microsoft YaHei", "size":14, "color":"#FFFFFF"}}`
+	case STYLE_TYPE_NORMAL:
+		styleStr = `{
+			"border":[{"type":"left","color":"000000","style":1},
+				{"type":"top","color":"000000","style":1},
+				{"type":"right","color":"000000","style":1},
+				{"type":"bottom","color":"000000","style":1}],
+			"fill":{"type":"gradient","color":["#FFFFFF","#FFFFFF"], "shading":1},
+			"alignment":{"horizontal":"center", "vertical":"center"},
+			"font":{"bold":true, "italic":false, "family":"宋体", "size":12, "color":"#000000"}}`
+	case STYLE_TYPE_NORMAL_GREY:
+		styleStr = `{
+			"border":[{"type":"left","color":"000000","style":1},
+				{"type":"top","color":"000000","style":1},
+				{"type":"right","color":"000000","style":1},
+				{"type":"bottom","color":"000000","style":1}],
+			"fill":{"type":"gradient","color":["#E7E6E6","#E7E6E6"], "shading":1},
+			"alignment":{"horizontal":"center", "vertical":"center"},
+			"font":{"bold":true, "italic":false, "family":"宋体", "size":12, "color":"#000000"}}`
+	case STYLE_TYPE_TOTAL:
+		styleStr = `{
+			"border":[{"type":"left","color":"000000","style":1},
+				{"type":"top","color":"000000","style":1},
+				{"type":"right","color":"000000","style":1},
+				{"type":"bottom","color":"000000","style":1}],
+			"fill":{"type":"gradient","color":["#FFFFFF","#FFFFFF"], "shading":1},
+			"alignment":{"horizontal":"center", "vertical":"center"},
+			"font":{"bold":true, "italic":false, "family":"宋体", "size":14, "color":"#000000"}}`
+	}
+	styleId, err := excel.NewStyle(styleStr)
+	if err != nil {
+		panic(err)
+	}
+	return styleId
 }
 
 func createSalaryXlsx(salaryMap map[string]map[string]Salary) error {
