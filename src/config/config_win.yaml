@@ -1,9 +1,5 @@
 attendance_folder: "..\\attendance"
 staff_file_path: "D:\\查询表\\全体人员信息.xlsx"
 output_path: "..\\output"
-ignore: ["雷晓利"]
-file_name: "salary.xlsx"
-year: 2024
-month: 8
-headers: ["序号","姓名","应出勤","实际出勤","应发工资","实发工资","加班工资","特殊费用","扣款","合计","备注"]
+
 

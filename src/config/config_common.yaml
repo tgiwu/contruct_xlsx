@@ -1,3 +1,11 @@
 metered_key: 5f894ce9917b83b6e09b6b54743bc2c5fcf754bf196fecabff03724136fb2104
 corporation_name: 北京千千康润物业管理有限公司
 corporation_account: "0200066309200074937"
+attendance_folder: "../attendance"
+staff_file_path: "/Users/yangzhang/Downloads/工作/查询表/全体人员信息.xlsx"
+output_path: "../output"
+ignore: ["雷晓利"]
+file_name: "salary.xlsx"
+year: 2024
+month: 9
+headers: ["序号","姓名","应出勤","实际出勤","应发工资","实发工资","加班工资","特殊费用","扣款","合计","备注"]

@@ -37,8 +37,7 @@ func main() {
 
 	lockCount := len(*filePaths) //attendance
 	lockCount += 1               //staff
-	// lockCount += 1  
-	fmt.Println("lock count ", lockCount)             //handle
+	fmt.Println("lock count ", lockCount) //handle
 	wg.Add(lockCount)
 
 	go handleChan(attChan, finishChan, staffChan, &wg, lockCount)
@@ -53,35 +52,15 @@ func main() {
 
 	fmt.Println("read all finish ~~~~~")
 
-	// fmt.Printf(" %+v \n", attMap)
-	// fmt.Println("----------------------------------")
-	// fmt.Printf(" %+v \n", staffMap)
-
 	err = buildSalaries(staffMap, attMap, &salaryMap)
 
 	if err != nil {
 		panic("build salary map failed " + err.Error())
 	}
 
-	// fmt.Printf("salary map %+v", salaryMap)
 
 	constructXlsx(salaryMap)
-	// wb := xlsx.NewFile()
 
-	// sheet, err := wb.AddSheet("sheet_1")
-
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// row := sheet.AddRow()
-	// row.SetHeight(22.5)
-	// cell := row.AddCell()
-	// cell.Merge(11, 0)
-	// cell.Value = "Merged"
-	// cell.SetStyle(getStyle(STYLE_TYPE_TITLE))
-
-	// wb.Save("..\\salaries\\merged_cells.xlsx")
 }
 
 func handleChan(attChan chan Attendance, finishChan chan string, staffChan chan Staff, wg *sync.WaitGroup, count int) {

@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/tealeg/xlsx/v3"
 )
@@ -67,6 +69,11 @@ func readFromXlsxStaff(staffChan chan Staff, finishChan chan string) error {
 				continue
 			}
 
+			//代发人员计入范崎路
+			if staff.Area == "代发工资" {
+				staff.Area = "范崎路"
+			}
+
 			staffChan <- staff
 		}
 	}
@@ -110,6 +117,19 @@ func visitRow(row *xlsx.Row, headerMap *map[int]string, staff *Staff) {
 			}
 
 			if fieldObj, ok := refType.FieldByName((*headerMap)[i]); ok {
+
+				if (*headerMap)[i] == "BackUp" && strings.Index(str, "json:") == 0{
+					str = str[len("json:"):]
+					var backupStaff BackUpStaff
+					err := json.Unmarshal([]byte(str), &backupStaff)
+					if err != nil {
+						fmt.Printf("unmarshal backup %s failed\n %v", str, err)
+					} else {
+						staff.BackUp = backupStaff
+					}
+					continue
+				}
+
 				if fieldObj.Type.Kind() == reflect.Int {
 					reflect.ValueOf(staff).Elem().FieldByName((*headerMap)[i]).SetInt(int64(val))
 

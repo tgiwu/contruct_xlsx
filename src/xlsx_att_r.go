@@ -9,17 +9,18 @@ import (
 )
 
 type Attendance struct {
-	Id       int    //序号
-	Name     string //姓名
-	Duty     int    //应出勤
-	Actal    int    //实际出勤
-	Temp_8   int    //8小时临勤
-	Temp_12  int    //12小时临勤
-	Temp_4   int    //4小时临勤
-	Sickness int    //病假
-	Special  int    //特殊费用
-	Backup   string //备注
-	Postion  string //区域
+	Id        int    //序号
+	Name      string //姓名
+	Duty      int    //应出勤
+	Actal     int    //实际出勤
+	Temp_8    int    //8小时临勤
+	Temp_12   int    //12小时临勤
+	Temp_4    int    //4小时临勤
+	Sickness  int    //病假
+	Special   int    //特殊费用
+	Deduction int    //扣款，可能是社保或罚款
+	Backup    string //备注
+	Postion   string //区域
 }
 
 func readFormXlsxAttendance(path string, c chan Attendance, finishC chan string) {
@@ -86,8 +87,10 @@ func visitorRow(row *xlsx.Row, attendance *Attendance, headerMap *map[int]string
 				(*headerMap)[i] = "Sickness"
 			case "特殊费用":
 				(*headerMap)[i] = "Special"
-			case "备勤":
+			case "备注":
 				(*headerMap)[i] = "Backup"
+			case "扣款":
+				(*headerMap)[i] = "Deduction"
 			}
 		} else {
 			val, _ := strconv.Atoi(str)

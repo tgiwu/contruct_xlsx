@@ -1,6 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
 
 type Salary struct {
 	Id             int    //序号
@@ -12,11 +16,13 @@ type Salary struct {
 	OvertimePay    int    //加班工资
 	PerformancePay int    //绩效工资 由于模板中有此项，暂时保留，值为0
 	SpecialPay     int    //特殊费用
-	Deduction      int    //扣款 由于模板中有此项，暂时保留，值为0
+	Deduction      int    //扣款,社保扣款或罚款
 	Account        int    //合计
 	BackUp         string //备注
 	Postion        string //区域，用于分组
 }
+
+var maxLenForBackupMap map[string]int
 
 type SalaryBuildError struct {
 	msg string
@@ -35,11 +41,30 @@ func buildSalaryItem(staff Staff, attendance Attendance, salary *Salary) error {
 		}
 	}
 
+	if maxLenForBackupMap == nil {
+		maxLenForBackupMap = make(map[string]int)
+	}
+
 	salary.Id = attendance.Id
 	salary.Name = staff.Name
 	salary.Should = attendance.Duty
 	salary.Actual = attendance.Actal
+	if len(staff.BackUp.BackUpSal) != 0 {
+		// 切面中文字符在utf-8下占3字节
+		salMonthStr := attendance.Backup[(strings.Index(attendance.Backup, "发") + 3):strings.Index(attendance.Backup, "月")]
+		salMonth, _ := strconv.Atoi(salMonthStr)
+	salRuleLabel:
+		for _, salRule := range staff.BackUp.BackUpSal {
+			for _, month := range salRule.Month {
+				if month == salMonth {
+					staff.Salary = salRule.Sal
+					break salRuleLabel
+				}
+			}
+		}
+	}
 	salary.Standard = staff.Salary
+	salary.Deduction = attendance.Deduction
 	if attendance.Duty <= attendance.Actal {
 		salary.NetPay = staff.Salary
 		salary.OvertimePay = 100 * (attendance.Actal - attendance.Duty)
@@ -61,6 +86,15 @@ func buildSalaryItem(staff Staff, attendance Attendance, salary *Salary) error {
 
 	salary.Account = salary.NetPay + salary.OvertimePay + salary.PerformancePay + salary.SpecialPay - salary.Deduction
 	salary.Postion = staff.Area
+	salary.BackUp = attendance.Backup
+
+	if length, found := maxLenForBackupMap[staff.Area]; found {
+		if len(salary.BackUp) > length {
+			maxLenForBackupMap[staff.Area] = len(salary.BackUp)
+		}
+	} else {
+		maxLenForBackupMap[staff.Area] = len(salary.BackUp)
+	}
 	return nil
 }
 
