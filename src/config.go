@@ -22,9 +22,11 @@ type config struct {
 	Year               int      `mapstructure:"year"`
 	Headers            []string `mapstructure:"headers"`
 	HeadersMap         map[string]string
-	MeteredKey         string `mapstructure:"metered_key"`
-	CorporationName    string `mapstructure:"corporation_name"`
-	CorporationAccount string `mapstructure:"corporation_account"`
+	MeteredKey         string   `mapstructure:"metered_key"`
+	CorporationName    string   `mapstructure:"corporation_name"`
+	CorporationAccount string   `mapstructure:"corporation_account"`
+	OverviewHeader     []string `mapstructure:"overview_header"`
+	OverviewHeaderMap  map[string]string
 }
 
 var mConf config
@@ -57,7 +59,7 @@ func readConfig() {
 		fmt.Println("unsupport os ", runtime.GOOS)
 	}
 
-	bs, err := os.ReadFile(filepath.Join(CONFIG_PATH, configName + ".yaml"))
+	bs, err := os.ReadFile(filepath.Join(CONFIG_PATH, configName+".yaml"))
 
 	vip.MergeConfig(bytes.NewReader(bs))
 
@@ -119,6 +121,25 @@ func readConfig() {
 		mConf.HeadersMap = headersMap
 	}
 
+	if len(mConf.OverviewHeader) != 0 {
+		overviewHeaderMap := make(map[string]string, len(mConf.OverviewHeader))
+		for _, header := range mConf.OverviewHeader {
+			//序号由行号决定
+			switch header {
+			case "区域":
+				overviewHeaderMap[header] = "Area"
+			case "发放人数":
+				overviewHeaderMap[header] = "NumOfStaff"
+			case "总计费用":
+				overviewHeaderMap[header] = "AccountTotal"
+			case "备注":
+				overviewHeaderMap[header] = "BackUp"
+			default:
+				//ignore
+			}
+		}
+		mConf.OverviewHeaderMap = overviewHeaderMap
+	}
 
 	fmt.Printf("config %+v \n", mConf)
 }

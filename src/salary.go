@@ -14,7 +14,6 @@ type Salary struct {
 	Standard       int    //应发工资
 	NetPay         int    //实发工资
 	OvertimePay    int    //加班工资
-	PerformancePay int    //绩效工资 由于模板中有此项，暂时保留，值为0
 	SpecialPay     int    //特殊费用
 	Deduction      int    //扣款,社保扣款或罚款
 	Account        int    //合计
@@ -22,6 +21,14 @@ type Salary struct {
 	Postion        string //区域，用于分组
 }
 
+type Overview struct {
+	Area string //区域
+	NumOfStaff int //在岗人数
+	AccountTotal int //总计费用
+	BackUp string //特殊说明
+}
+
+//根据字数定制备注列宽度
 var maxLenForBackupMap map[string]int
 
 type SalaryBuildError struct {
@@ -84,7 +91,7 @@ func buildSalaryItem(staff Staff, attendance Attendance, salary *Salary) error {
 		salary.SpecialPay += attendance.Special
 	}
 
-	salary.Account = salary.NetPay + salary.OvertimePay + salary.PerformancePay + salary.SpecialPay - salary.Deduction
+	salary.Account = salary.NetPay + salary.OvertimePay + salary.SpecialPay - salary.Deduction
 	salary.Postion = staff.Area
 	salary.BackUp = attendance.Backup
 
