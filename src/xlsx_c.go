@@ -41,8 +41,15 @@ func (ee EmptyError) Error() string {
 func constructXlsx(salaryMap map[string]map[string]Salary) error {
 	excel := excelize.NewFile()
 
-	for name, salaries := range salaryMap {
-		constructSalarySheet(excel, name, salaries)
+	keys := make([]string, 0, len(salaryMap))
+	for k := range salaryMap {
+		keys = append(keys, k)
+	}
+
+	slices.Sort(keys)
+
+	for _, key := range keys {
+		constructSalarySheet(excel, key, salaryMap[key])
 	}
 
 	constructOverviewSheet(excel, overviewArr)
@@ -56,7 +63,7 @@ func constructXlsx(salaryMap map[string]map[string]Salary) error {
 
 func constructOverviewSheet(excel *excelize.File, overviews []Overview) {
 
-	slices.SortFunc(overviews, func(a,b Overview) int {
+	slices.SortFunc(overviews, func(a, b Overview) int {
 		return strings.Compare(a.Area, b.Area)
 	})
 

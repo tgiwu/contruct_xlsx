@@ -13,20 +13,22 @@ import (
 const CONFIG_PATH = "config/"
 
 type config struct {
-	AttendanceFolder   string   `mapstructure:"attendance_folder"`
-	StaffFilePath      string   `mapstructure:"staff_file_path"`
-	Ignore             []string `mapstructure:"ignore"`
-	OutputPath         string   `mapstructure:"output_path"`
-	FileName           string   `mapstructure:"file_name"`
-	Month              int      `mapstructure:"month"`
-	Year               int      `mapstructure:"year"`
-	Headers            []string `mapstructure:"headers"`
-	HeadersMap         map[string]string
-	MeteredKey         string   `mapstructure:"metered_key"`
-	CorporationName    string   `mapstructure:"corporation_name"`
-	CorporationAccount string   `mapstructure:"corporation_account"`
-	OverviewHeader     []string `mapstructure:"overview_header"`
-	OverviewHeaderMap  map[string]string
+	AttendanceFolder         string   `mapstructure:"attendance_folder"`
+	StaffFilePath            string   `mapstructure:"staff_file_path"`
+	Ignore                   []string `mapstructure:"ignore"`
+	OutputPath               string   `mapstructure:"output_path"`
+	FileName                 string   `mapstructure:"file_name"`
+	Month                    int      `mapstructure:"month"`
+	Year                     int      `mapstructure:"year"`
+	Headers                  []string `mapstructure:"headers"`
+	HeadersMap               map[string]string
+	MeteredKey               string   `mapstructure:"metered_key"`
+	CorporationName          string   `mapstructure:"corporation_name"`
+	CorporationAccount       string   `mapstructure:"corporation_account"`
+	OverviewHeader           []string `mapstructure:"overview_header"`
+	OverviewHeaderMap        map[string]string
+	StaffSheetName           string `mapstructure:"staff_sheet_name"`
+	SalaryStandardsSheetName string `mapstructure:"salary_standards_sheet_name"`
 }
 
 var mConf config

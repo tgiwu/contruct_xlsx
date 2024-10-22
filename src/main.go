@@ -10,6 +10,8 @@ import (
 var attMap = make(map[string]map[string]Attendance)
 var staffMap = make(map[string]map[string]Staff)
 var salaryMap = make(map[string]map[string]Salary)
+var ssMap = make(map[string]int)
+
 var wg sync.WaitGroup
 
 func main() {
@@ -34,19 +36,21 @@ func main() {
 	var attChan = make(chan Attendance)
 	var staffChan = make(chan Staff)
 	var finishChan = make(chan string)
+	var ssChan = make(chan SalaryStandards)
 
-	lockCount := len(*filePaths) //attendance
-	lockCount += 1               //staff
+	lockCount := len(*filePaths)          //attendance
+	lockCount += 1                        //staff
+	lockCount += 1                        //salaryStandards
 	fmt.Println("lock count ", lockCount) //handle
 	wg.Add(lockCount)
 
-	go handleChan(attChan, finishChan, staffChan, &wg, lockCount)
+	go handleChan(attChan, finishChan, staffChan, ssChan, &wg, lockCount)
 
 	for _, path := range *filePaths {
 		go readFormXlsxAttendance(path, attChan, finishChan)
 	}
 
-	go readFromXlsxStaff(staffChan, finishChan)
+	go readData(staffChan, ssChan, finishChan)
 
 	wg.Wait()
 
@@ -58,12 +62,11 @@ func main() {
 		panic("build salary map failed " + err.Error())
 	}
 
-
 	constructXlsx(salaryMap)
 
 }
 
-func handleChan(attChan chan Attendance, finishChan chan string, staffChan chan Staff, wg *sync.WaitGroup, count int) {
+func handleChan(attChan chan Attendance, finishChan chan string, staffChan chan Staff, ssChan chan SalaryStandards, wg *sync.WaitGroup, count int) {
 	for {
 		select {
 		case att := <-attChan:
@@ -81,7 +84,8 @@ func handleChan(attChan chan Attendance, finishChan chan string, staffChan chan 
 			}
 			staffs[staff.Name] = staff
 			staffMap[staff.Area] = staffs
-
+		case ss := <-ssChan:
+			ssMap[ss.TempType] = ss.SalaryPerDay
 		case signal := <-finishChan:
 
 			wg.Done()

@@ -7,28 +7,28 @@ import (
 )
 
 type Salary struct {
-	Id             int    //序号
-	Name           string //姓名
-	Should         int    //应出勤
-	Actual         int    //实出勤
-	Standard       int    //应发工资
-	NetPay         int    //实发工资
-	OvertimePay    int    //加班工资
-	SpecialPay     int    //特殊费用
-	Deduction      int    //扣款,社保扣款或罚款
-	Account        int    //合计
-	BackUp         string //备注
-	Postion        string //区域，用于分组
+	Id          int    //序号
+	Name        string //姓名
+	Should      int    //应出勤
+	Actual      int    //实出勤
+	Standard    int    //应发工资
+	NetPay      int    //实发工资
+	OvertimePay int    //加班工资
+	SpecialPay  int    //特殊费用
+	Deduction   int    //扣款,社保扣款或罚款
+	Account     int    //合计
+	BackUp      string //备注
+	Postion     string //区域，用于分组
 }
 
 type Overview struct {
-	Area string //区域
-	NumOfStaff int //在岗人数
-	AccountTotal int //总计费用
-	BackUp string //特殊说明
+	Area         string //区域
+	NumOfStaff   int    //在岗人数
+	AccountTotal int    //总计费用
+	BackUp       string //特殊说明
 }
 
-//根据字数定制备注列宽度
+// 根据字数定制备注列宽度
 var maxLenForBackupMap map[string]int
 
 type SalaryBuildError struct {
@@ -79,8 +79,11 @@ func buildSalaryItem(staff Staff, attendance Attendance, salary *Salary) error {
 		salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
 	}
 
-	if attendance.Temp_12 != 0 || attendance.Temp_8 != 0 || attendance.Temp_4 != 0 {
-		salary.SpecialPay = attendance.Temp_12*180 + attendance.Temp_4*80 + attendance.Temp_8*150
+	if attendance.Temp_12 != 0 || attendance.Temp_8 != 0 || attendance.Temp_4 != 0 || attendance.Temp_Guard != 0 {
+		salary.SpecialPay += attendance.Temp_12 * ssMap["Temp_12"]
+		salary.SpecialPay += attendance.Temp_4 * ssMap["Temp_4"]
+		salary.SpecialPay += attendance.Temp_8 * ssMap["Temp_8"]
+		salary.SpecialPay += attendance.Temp_Guard * ssMap["Temp_Guard"]
 	}
 
 	if attendance.Sickness != 0 {
