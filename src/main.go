@@ -11,6 +11,7 @@ var attMap = make(map[string]map[string]Attendance)
 var staffMap = make(map[string]map[string]Staff)
 var salaryMap = make(map[string]map[string]Salary)
 var ssMap = make(map[string]int)
+var spMap = make(map[string]int)
 
 var wg sync.WaitGroup
 
@@ -36,21 +37,23 @@ func main() {
 	var attChan = make(chan Attendance)
 	var staffChan = make(chan Staff)
 	var finishChan = make(chan string)
-	var ssChan = make(chan SalaryStandards)
+	var ssChan = make(chan SalaryStandardsTemp)
+	var spChan = make(chan SalaryStandardsPost)
 
 	lockCount := len(*filePaths)          //attendance
 	lockCount += 1                        //staff
-	lockCount += 1                        //salaryStandards
+	lockCount += 1                        //salaryStandardsTemp
+	lockCount += 1                        //salaryStandardsPost
 	fmt.Println("lock count ", lockCount) //handle
 	wg.Add(lockCount)
 
-	go handleChan(attChan, finishChan, staffChan, ssChan, &wg, lockCount)
+	go handleChan(attChan, finishChan, staffChan, ssChan, spChan, &wg, lockCount)
 
 	for _, path := range *filePaths {
 		go readFormXlsxAttendance(path, attChan, finishChan)
 	}
 
-	go readData(staffChan, ssChan, finishChan)
+	go readData(staffChan, ssChan, spChan, finishChan)
 
 	wg.Wait()
 
@@ -66,7 +69,7 @@ func main() {
 
 }
 
-func handleChan(attChan chan Attendance, finishChan chan string, staffChan chan Staff, ssChan chan SalaryStandards, wg *sync.WaitGroup, count int) {
+func handleChan(attChan chan Attendance, finishChan chan string, staffChan chan Staff, ssChan chan SalaryStandardsTemp, spChan chan SalaryStandardsPost, wg *sync.WaitGroup, count int) {
 	for {
 		select {
 		case att := <-attChan:
@@ -86,6 +89,8 @@ func handleChan(attChan chan Attendance, finishChan chan string, staffChan chan 
 			staffMap[staff.Area] = staffs
 		case ss := <-ssChan:
 			ssMap[ss.TempType] = ss.SalaryPerDay
+		case sp := <-spChan:
+			spMap[sp.PostType] = sp.SalaryPerMonth
 		case signal := <-finishChan:
 
 			wg.Done()

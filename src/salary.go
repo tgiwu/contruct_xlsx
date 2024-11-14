@@ -19,6 +19,8 @@ type Salary struct {
 	Account     int    //合计
 	BackUp      string //备注
 	Postion     string //区域，用于分组
+	//todo: 写入表之前不能确定具体位置，暂时只能绑定列名
+	ErrorMap map[string]string //错误批注，如有错误单元格标红并添加批注;key:列名；value：错误描述
 }
 
 type Overview struct {
@@ -47,6 +49,8 @@ func buildSalaryItem(staff Staff, attendance Attendance, salary *Salary) error {
 				attendance.Name),
 		}
 	}
+
+	salary.ErrorMap = make(map[string]string)
 
 	if maxLenForBackupMap == nil {
 		maxLenForBackupMap = make(map[string]int)
@@ -84,6 +88,18 @@ func buildSalaryItem(staff Staff, attendance Attendance, salary *Salary) error {
 		salary.SpecialPay += attendance.Temp_4 * ssMap["Temp_4"]
 		salary.SpecialPay += attendance.Temp_8 * ssMap["Temp_8"]
 		salary.SpecialPay += attendance.Temp_Guard * ssMap["Temp_Guard"]
+	}
+
+	if attendance.TempTransfer != 0 || len(attendance.TempTransferPost) != 0 {
+		v, found := spMap[attendance.TempTransferPost]
+		if found {
+			salary.SpecialPay += v / attendance.Duty * attendance.TempTransfer
+			fmt.Printf("%s temp transfer post is %s; during %d;transfer salary is %d\n", attendance.Name, attendance.TempTransferPost, attendance.TempTransfer, v/attendance.Duty*attendance.TempTransfer)
+		} else {
+
+			salary.ErrorMap["特殊费用"] += fmt.Sprintf("未找到借调岗位 %s 对应的新进标准；", attendance.TempTransferPost)
+			salary.SpecialPay = -999999 //我找到岗位
+		}
 	}
 
 	if attendance.Sickness != 0 {

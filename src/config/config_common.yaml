@@ -7,8 +7,9 @@ output_path: "../output"
 ignore: ["雷晓利"]
 file_name: "salary.xlsx"
 year: 2024
-month: 9
+month: 10
 headers: ["序号","姓名","应出勤","实际出勤","应发工资","实发工资","加班工资","特殊费用","扣款","合计","备注"]
 overview_header: ["序号","区域","发放人数", "总计费用", "备注"]
 staff_sheet_name: "员工详情（全部）"
-salary_standards_sheet_name: "临勤工资标准"
+salary_standards_temp_sheet_name: "临勤工资标准"
+salary_standards_post_sheet_name: "岗位工资标准"

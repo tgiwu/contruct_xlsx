@@ -19,6 +19,7 @@ const STYLE_TYPE_HEADER = 1
 const STYLE_TYPE_NORMAL = 2
 const STYLE_TYPE_NORMAL_GREY = 3
 const STYLE_TYPE_TOTAL = 4
+const STYLE_TYPE_ERROR = 5
 
 const TYPE_ROW_TITLE = 0
 const TYPE_ROW_HEADER = 1
@@ -186,7 +187,7 @@ func fillHeader(excel *excelize.File, sheetName string, headers []string) {
 			case maxLenForBackupMap[sheetName] < 20:
 				excel.SetColWidth(sheetName, pos(-1, i), pos(-1, i), 37.75)
 			default:
-				excel.SetColWidth(sheetName, pos(-1, i), pos(-1, i), 42.75)
+				excel.SetColWidth(sheetName, pos(-1, i), pos(-1, i), 45.75)
 			}
 
 		case header == "序号":
@@ -201,6 +202,7 @@ func fillHeader(excel *excelize.File, sheetName string, headers []string) {
 }
 
 func fillRow(excel *excelize.File, sheetName string, salaries []Salary) {
+	var errCells = make(map[string]string, 0)
 	for i, salary := range salaries {
 		for j, s := range mConf.Headers {
 			v := reflect.ValueOf(salary)
@@ -222,8 +224,19 @@ func fillRow(excel *excelize.File, sheetName string, salaries []Salary) {
 			} else {
 				excel.SetCellStyle(sheetName, pos(i+2, j), pos(i+2, j), cellStyle(excel, STYLE_TYPE_NORMAL_GREY))
 			}
-		}
 
+			comment, f := salary.ErrorMap[s]
+			if f {
+				errCells[pos(i+2, j)] = comment
+			}
+		}
+	}
+	//mark error
+	if len(errCells) > 0 {
+		for p, comment := range errCells {
+			excel.SetCellStyle(sheetName, p, p, cellStyle(excel, STYLE_TYPE_ERROR))
+			excel.AddComment(sheetName, p, fmt.Sprintf(`{"author":"Robot: ","text":"%s"}`, comment))
+		}
 	}
 }
 
@@ -312,7 +325,12 @@ func cellStyle(excel *excelize.File, styleNo int) int {
 		stylePar.Font = "宋体"
 		stylePar.Size = 12
 		stylePar.FontColor = "#000000"
-
+	case STYLE_TYPE_ERROR:
+		stylePar.Color = "#FF0000"
+		stylePar.Bold = true
+		stylePar.Font = "宋体"
+		stylePar.Size = 13
+		stylePar.FontColor = "#000000"
 	}
 
 	t.Execute(&tempBytes, stylePar)

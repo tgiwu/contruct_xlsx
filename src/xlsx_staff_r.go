@@ -22,8 +22,13 @@ const COL_SS_TYPE = "类型"
 const COL_SS_SALARY_PER_DAY = "日薪"
 const COL_SS_DESCRIPTION = "说明"
 
+const COL_SP_TYPE = "类型"
+const COL_SP_SALARY_PER_MONTH = "月薪"
+const COL_SP_DESCRIPTION = "说明"
+
 const FINISH_SIGNAL_STAFF = "staff finish!!"
-const FINISH_SIGNAL_SALARY_STANDARDS = "salary standards finish!!"
+const FINISH_SIGNAL_SALARY_STANDARDS_TEMP = "salary standards finish!!"
+const FINISH_SIGNAL_SALARY_STANDARDS_POST = "salary standards post finish"
 
 type Staff struct {
 	Name     string
@@ -35,10 +40,16 @@ type Staff struct {
 	BackUp   BackUpStaff
 }
 
-type SalaryStandards struct {
+type SalaryStandardsTemp struct {
 	TempType     string //临勤类型
 	SalaryPerDay int    //日薪
 	Description  string //说明
+}
+
+type SalaryStandardsPost struct {
+	PostType       string //岗位类型
+	SalaryPerMonth int    //月薪
+	Description    string //描述
 }
 
 type BackUpStaff struct {
@@ -50,7 +61,7 @@ type BackUpStaffSalary struct {
 	Sal   int   `json:"sal"`
 }
 
-func readSalaryStandard(sheet *xlsx.Sheet, ssChan chan SalaryStandards, finishChan chan string) error {
+func readSalaryStandardTemp(sheet *xlsx.Sheet, ssChan chan SalaryStandardsTemp, finishChan chan string) error {
 
 	headerMap := make(map[int]string)
 
@@ -61,7 +72,7 @@ func readSalaryStandard(sheet *xlsx.Sheet, ssChan chan SalaryStandards, finishCh
 			return err
 		}
 
-		var ss SalaryStandards
+		var ss SalaryStandardsTemp
 
 		err = visitRowSS(row, &headerMap, &ss)
 
@@ -74,12 +85,42 @@ func readSalaryStandard(sheet *xlsx.Sheet, ssChan chan SalaryStandards, finishCh
 		}
 	}
 
-	finishChan <- FINISH_SIGNAL_SALARY_STANDARDS
+	finishChan <- FINISH_SIGNAL_SALARY_STANDARDS_TEMP
 
 	return nil
 }
 
-func visitRowSS(row *xlsx.Row, headerMap *map[int]string, ss *SalaryStandards) error {
+func readSalaryStandardPost(sheet *xlsx.Sheet, spChan chan SalaryStandardsPost, finishChan chan string) error {
+
+	headerMap := make(map[int]string)
+
+	for i := range sheet.MaxRow {
+		row, err := sheet.Row(i)
+
+		if err != nil {
+			return err
+		}
+
+		var sp SalaryStandardsPost
+
+		err = visitRowSP(row, &headerMap, &sp)
+
+		if err != nil {
+			return err
+		}
+
+		if len(sp.PostType) != 0 {
+			spChan <- sp
+		}
+	}
+
+	finishChan <- FINISH_SIGNAL_SALARY_STANDARDS_POST
+
+
+	return nil
+}
+
+func visitRowSS(row *xlsx.Row, headerMap *map[int]string, ss *SalaryStandardsTemp) error {
 	isReadHeader := len(*headerMap) == 0
 
 	for i := range row.Sheet.MaxCol {
@@ -121,6 +162,48 @@ func visitRowSS(row *xlsx.Row, headerMap *map[int]string, ss *SalaryStandards) e
 	return nil
 }
 
+func visitRowSP(row *xlsx.Row, headerMap *map[int]string, sp *SalaryStandardsPost) error {
+	isReadHeader := len(*headerMap) == 0
+
+	for i := range row.Sheet.MaxCol {
+		str, err := row.GetCell(i).FormattedValue()
+
+		if err != nil {
+			continue
+		}
+
+		if isReadHeader {
+			switch str {
+			case COL_SP_DESCRIPTION:
+				(*headerMap)[i] = "Description"
+			case COL_SP_TYPE:
+				(*headerMap)[i] = "PostType"
+			case COL_SP_SALARY_PER_MONTH:
+				(*headerMap)[i] = "SalaryPerMonth"
+			}
+		} else {
+			val, _ := strconv.Atoi(str)
+			refType := reflect.TypeOf(*sp)
+			if refType.Kind() != reflect.Struct {
+				panic("not struct")
+			}
+
+			if fieldObj, ok := refType.FieldByName((*headerMap)[i]); ok {
+
+				if fieldObj.Type.Kind() == reflect.Int {
+					reflect.ValueOf(sp).Elem().FieldByName((*headerMap)[i]).SetInt(int64(val))
+
+				}
+				if fieldObj.Type.Kind() == reflect.String {
+					reflect.ValueOf(sp).Elem().FieldByName((*headerMap)[i]).SetString(str)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func readStaff(sheet *xlsx.Sheet, staffChan chan Staff, finishChan chan string) error {
 	headerMap := make(map[int]string)
 
@@ -152,7 +235,7 @@ func readStaff(sheet *xlsx.Sheet, staffChan chan Staff, finishChan chan string) 
 	return nil
 }
 
-func readData(staffChan chan Staff, ssChan chan SalaryStandards, finishChan chan string) error {
+func readData(staffChan chan Staff, ssChan chan SalaryStandardsTemp, spChan chan SalaryStandardsPost, finishChan chan string) error {
 	file, err := xlsx.OpenFile(mConf.StaffFilePath)
 	if err != nil {
 		fmt.Println(err)
@@ -163,10 +246,12 @@ func readData(staffChan chan Staff, ssChan chan SalaryStandards, finishChan chan
 	for _, sheet := range file.Sheets {
 
 		switch sheet.Name {
-		case mConf.StaffSheetName:
+		case mConf.SheetNameStaff:
 			err = readStaff(sheet, staffChan, finishChan)
-		case mConf.SalaryStandardsSheetName:
-			err = readSalaryStandard(sheet, ssChan, finishChan)
+		case mConf.SheetNameSalaryStandardsTemp:
+			err = readSalaryStandardTemp(sheet, ssChan, finishChan)
+		case mConf.SheetNameSalaryStandardsPost:
+			err = readSalaryStandardPost(sheet, spChan, finishChan)
 		}
 
 		if err != nil {
