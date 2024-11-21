@@ -14,8 +14,8 @@ type Attendance struct {
 	Duty             int    //应出勤
 	Actal            int    //实际出勤
 	Temp_8           int    //8小时临勤
-	Temp_12          int    //12小时临勤
-	Temp_4           int    //4小时临勤
+	Temp_12          int    //12小时临勤；外派人员法定节假日
+	Temp_4           int    //4小时临勤；加班
 	Temp_Guard       int    //外派值班
 	Sickness         int    //病假
 	Special          int    //特殊费用

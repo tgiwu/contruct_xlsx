@@ -78,23 +78,50 @@ func buildSalaryItem(staff Staff, attendance Attendance, salary *Salary) error {
 	salary.Deduction = attendance.Deduction
 	if attendance.Duty <= attendance.Actal {
 		salary.NetPay = staff.Salary
-		salary.OvertimePay = 100 * (attendance.Actal - attendance.Duty)
+		salary.OvertimePay += 100 * (attendance.Actal - attendance.Duty)
 	} else {
 		salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
 	}
 
-	if attendance.Temp_12 != 0 || attendance.Temp_8 != 0 || attendance.Temp_4 != 0 || attendance.Temp_Guard != 0 {
+	switch attendance.Postion {
+	case "外派":
+		if attendance.Duty < attendance.Actal {
+			salary.ErrorMap["实发工资"] += fmt.Sprintf("实际出勤天数大于应出勤天数，但没有找到只算方法 应出勤 %d， 实际出勤 %d；", attendance.Duty, attendance.Actal)
+			salary.NetPay = -999999 //出勤天数大于应出勤天数，需确认计算方式
+		} else {
+			salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
+		}
+		//法定节假日三倍工资,为和考勤表保持一致，一倍包含在出勤数中，额外增加两倍工资
+		salary.OvertimePay += attendance.Temp_12 * (staff.Salary / attendance.Duty) * 2
+		//值班每天 60
+		salary.OvertimePay += attendance.Temp_4 * ssMap["Temp_Guard"]
+	case "范崎路":
+		if attendance.Duty <= attendance.Actal {
+			salary.NetPay = staff.Salary
+			salary.OvertimePay += 100 * (attendance.Actal - attendance.Duty)
+		} else {
+			//请假按1天100算
+			salary.NetPay = staff.Salary - (attendance.Duty-attendance.Actal)*100
+		}
+		//范崎路加班每天100
+		salary.SpecialPay += attendance.Temp_4 * ssMap["Temp_Guard_Cleaner"]
+	default:
+		if attendance.Duty < attendance.Actal {
+			salary.ErrorMap["实发工资"] += fmt.Sprintf("实际出勤天数大于应出勤天数，但没有找到只算方法 应出勤 %d， 实际出勤 %d；", attendance.Duty, attendance.Actal)
+			salary.NetPay = -999999 //出勤天数大于应出勤天数，需确认计算方式
+		} else {
+			salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
+		}
 		salary.SpecialPay += attendance.Temp_12 * ssMap["Temp_12"]
 		salary.SpecialPay += attendance.Temp_4 * ssMap["Temp_4"]
 		salary.SpecialPay += attendance.Temp_8 * ssMap["Temp_8"]
-		salary.SpecialPay += attendance.Temp_Guard * ssMap["Temp_Guard"]
 	}
 
 	if attendance.TempTransfer != 0 || len(attendance.TempTransferPost) != 0 {
 		v, found := spMap[attendance.TempTransferPost]
 		if found {
 			salary.SpecialPay += v / attendance.Duty * attendance.TempTransfer
-			fmt.Printf("%s temp transfer post is %s; during %d;transfer salary is %d\n", attendance.Name, attendance.TempTransferPost, attendance.TempTransfer, v/attendance.Duty*attendance.TempTransfer)
+			// fmt.Printf("%s temp transfer post is %s; during %d;transfer salary is %d\n", attendance.Name, attendance.TempTransferPost, attendance.TempTransfer, v/attendance.Duty*attendance.TempTransfer)
 		} else {
 
 			salary.ErrorMap["特殊费用"] += fmt.Sprintf("未找到借调岗位 %s 对应的新进标准；", attendance.TempTransferPost)
