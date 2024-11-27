@@ -9,8 +9,6 @@ import (
 	"strings"
 	"text/template"
 
-	// "sync"
-
 	"github.com/360EntSecGroup-Skylar/excelize"
 )
 
@@ -40,6 +38,7 @@ func (ee EmptyError) Error() string {
 }
 
 func constructXlsx(salaryMap map[string]map[string]Salary) error {
+	fmt.Println("construct xlsx start")
 	excel := excelize.NewFile()
 
 	keys := make([]string, 0, len(salaryMap))
@@ -59,6 +58,7 @@ func constructXlsx(salaryMap map[string]map[string]Salary) error {
 
 	delFileIfExist(mConf.OutputPath, mConf.FileName)
 	excel.SaveAs(filepath.Join(mConf.OutputPath, mConf.FileName))
+	fmt.Println("construct xlsx end")
 	return nil
 }
 
@@ -225,6 +225,9 @@ func fillRow(excel *excelize.File, sheetName string, salaries []Salary) {
 				excel.SetCellStyle(sheetName, pos(i+2, j), pos(i+2, j), cellStyle(excel, STYLE_TYPE_NORMAL_GREY))
 			}
 
+			if len(salary.ErrorMap) > 0 {
+				fmt.Println("has error")
+			}
 			comment, f := salary.ErrorMap[s]
 			if f {
 				errCells[pos(i+2, j)] = comment

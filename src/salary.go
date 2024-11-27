@@ -85,16 +85,23 @@ func buildSalaryItem(staff Staff, attendance Attendance, salary *Salary) error {
 
 	switch attendance.Postion {
 	case "外派":
-		if attendance.Duty < attendance.Actal {
-			salary.ErrorMap["实发工资"] += fmt.Sprintf("实际出勤天数大于应出勤天数，但没有找到只算方法 应出勤 %d， 实际出勤 %d；", attendance.Duty, attendance.Actal)
-			salary.NetPay = -999999 //出勤天数大于应出勤天数，需确认计算方式
+		//实际出勤天数包含法定节假日工作天数
+		//若法定节假日天数多余实际出勤天数，考勤错误
+		if salary.Actual-attendance.Temp_12 < 0 {
+			salary.ErrorMap["实际出勤"] += fmt.Sprintf("法定节假日数多余实际出勤天数 实际出勤 %d，法定节假日 %d", attendance.Actal, attendance.Temp_12)
+			salary.Actual = -999999
 		} else {
-			salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
+			if attendance.Duty < attendance.Actal {
+				salary.ErrorMap["实发工资"] += fmt.Sprintf("实际出勤天数大于应出勤天数，但没有找到只算方法 应出勤 %d， 实际出勤 %d；", attendance.Duty, attendance.Actal)
+				salary.NetPay = -999999 //出勤天数大于应出勤天数，需确认计算方式
+			} else {
+				salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
+			}
+			//法定节假日三倍工资,三倍以北京市最低工资2420计算，每月平均工作天数21.75天
+			salary.OvertimePay += int(float64(attendance.Temp_12) * (float64(2420) / float64(21.75)) * 3)
+			//值班每天 60
+			salary.OvertimePay += attendance.Temp_4 * ssMap["Temp_Guard"]
 		}
-		//法定节假日三倍工资,为和考勤表保持一致，一倍包含在出勤数中，额外增加两倍工资
-		salary.OvertimePay += attendance.Temp_12 * (staff.Salary / attendance.Duty) * 2
-		//值班每天 60
-		salary.OvertimePay += attendance.Temp_4 * ssMap["Temp_Guard"]
 	case "范崎路":
 		if attendance.Duty <= attendance.Actal {
 			salary.NetPay = staff.Salary

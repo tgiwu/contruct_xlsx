@@ -40,6 +40,6 @@ require (
 	github.com/rogpeppe/fastuuid v1.2.0 // indirect
 	github.com/shabbyrobe/xmlwriter v0.0.0-20200208144257-9fca06d00ffa // indirect
 	github.com/spf13/viper v1.19.0
-	github.com/unidoc/unioffice v1.36.0
+	github.com/unidoc/unioffice v1.38.0
 	golang.org/x/text v0.16.0 // indirect
 )
