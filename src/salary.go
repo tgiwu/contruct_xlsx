@@ -76,12 +76,12 @@ func buildSalaryItem(staff Staff, attendance Attendance, salary *Salary) error {
 	}
 	salary.Standard = staff.Salary
 	salary.Deduction = attendance.Deduction
-	if attendance.Duty <= attendance.Actal {
-		salary.NetPay = staff.Salary
-		salary.OvertimePay += 100 * (attendance.Actal - attendance.Duty)
-	} else {
-		salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
-	}
+	// if attendance.Duty <= attendance.Actal {
+	// 	salary.NetPay = staff.Salary
+	// 	salary.OvertimePay += 100 * (attendance.Actal - attendance.Duty)
+	// } else {
+	// 	salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
+	// }
 
 	switch attendance.Postion {
 	case "外派":
@@ -116,6 +116,8 @@ func buildSalaryItem(staff Staff, attendance Attendance, salary *Salary) error {
 		if attendance.Duty < attendance.Actal {
 			salary.ErrorMap["实发工资"] += fmt.Sprintf("实际出勤天数大于应出勤天数，但没有找到只算方法 应出勤 %d， 实际出勤 %d；", attendance.Duty, attendance.Actal)
 			salary.NetPay = -999999 //出勤天数大于应出勤天数，需确认计算方式
+		} else if attendance.Duty == attendance.Actal {
+			salary.NetPay = staff.Salary
 		} else {
 			salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
 		}

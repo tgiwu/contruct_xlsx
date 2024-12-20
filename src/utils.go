@@ -39,7 +39,15 @@ func delFileIfExist(path string, name string) {
 	}
 
 	if os.IsNotExist(err) {
-		fmt.Printf("file %s not exist", file)
+		fmt.Printf("file %s not exist \n", file)
+	}
+
+	_, err = os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			fmt.Printf("create out dir %s \n", path)
+			os.MkdirAll(path, os.ModePerm)
+		}
 	}
 }
 

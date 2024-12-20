@@ -57,6 +57,9 @@ func constructXlsx(salaryMap map[string]map[string]Salary) error {
 	excel.DeleteSheet("Sheet1")
 
 	delFileIfExist(mConf.OutputPath, mConf.FileName)
+
+	
+
 	excel.SaveAs(filepath.Join(mConf.OutputPath, mConf.FileName))
 	fmt.Println("construct xlsx end")
 	return nil
