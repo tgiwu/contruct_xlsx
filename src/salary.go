@@ -129,8 +129,13 @@ func buildSalaryItem(staff Staff, attendance Attendance, salary *Salary) error {
 	if attendance.TempTransfer != 0 || len(attendance.TempTransferPost) != 0 {
 		v, found := spMap[attendance.TempTransferPost]
 		if found {
-			salary.SpecialPay += v / attendance.Duty * attendance.TempTransfer
-			// fmt.Printf("%s temp transfer post is %s; during %d;transfer salary is %d\n", attendance.Name, attendance.TempTransferPost, attendance.TempTransfer, v/attendance.Duty*attendance.TempTransfer)
+
+			if attendance.TempTransferPost == "PD100" {
+				salary.SpecialPay += attendance.TempTransfer * 100
+			} else {
+				salary.SpecialPay += v / attendance.Duty * attendance.TempTransfer
+				// fmt.Printf("%s temp transfer post is %s; during %d;transfer salary is %d\n", attendance.Name, attendance.TempTransferPost, attendance.TempTransfer, v/attendance.Duty*attendance.TempTransfer)
+			}
 		} else {
 
 			salary.ErrorMap["特殊费用"] += fmt.Sprintf("未找到借调岗位 %s 对应的新进标准；", attendance.TempTransferPost)
