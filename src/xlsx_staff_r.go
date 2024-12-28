@@ -31,14 +31,19 @@ const FINISH_SIGNAL_SALARY_STANDARDS_TEMP = "salary standards finish!!"
 const FINISH_SIGNAL_SALARY_STANDARDS_POST = "salary standards post finish"
 
 type Staff struct {
-	Name     string
-	Salary   int
-	Account  string
-	ToName   string
-	Area     string
-	QuitTime string
-	BackUp   BackUpStaff
+	Name     string      //姓名
+	Salary   int         //工资
+	Account  string      //收款账号
+	ToName   string      //收款人姓名
+	Area     string      //区域
+	QuitTime string      //离职时间
+	BackUp   BackUpStaff //备注
+	Calc     Calc        //工资计算方式
+	Sal      *Salary     //工资计算结果
+	Att      *Attendance //考勤
 }
+
+type Calc func(staff *Staff, attendance *Attendance, salary *Salary) error
 
 type SalaryStandardsTemp struct {
 	TempType     string //临勤类型
@@ -61,6 +66,7 @@ type BackUpStaffSalary struct {
 	Sal   int   `json:"sal"`
 }
 
+//读取临勤工资标准
 func readSalaryStandardTemp(sheet *xlsx.Sheet, ssChan chan SalaryStandardsTemp, finishChan chan string) error {
 
 	headerMap := make(map[int]string)
@@ -90,6 +96,7 @@ func readSalaryStandardTemp(sheet *xlsx.Sheet, ssChan chan SalaryStandardsTemp, 
 	return nil
 }
 
+//读取借调工资标准
 func readSalaryStandardPost(sheet *xlsx.Sheet, spChan chan SalaryStandardsPost, finishChan chan string) error {
 
 	headerMap := make(map[int]string)
@@ -116,10 +123,10 @@ func readSalaryStandardPost(sheet *xlsx.Sheet, spChan chan SalaryStandardsPost, 
 
 	finishChan <- FINISH_SIGNAL_SALARY_STANDARDS_POST
 
-
 	return nil
 }
 
+//单行临勤工资标准
 func visitRowSS(row *xlsx.Row, headerMap *map[int]string, ss *SalaryStandardsTemp) error {
 	isReadHeader := len(*headerMap) == 0
 
@@ -162,6 +169,7 @@ func visitRowSS(row *xlsx.Row, headerMap *map[int]string, ss *SalaryStandardsTem
 	return nil
 }
 
+//单行借调工资标准
 func visitRowSP(row *xlsx.Row, headerMap *map[int]string, sp *SalaryStandardsPost) error {
 	isReadHeader := len(*headerMap) == 0
 
@@ -204,6 +212,7 @@ func visitRowSP(row *xlsx.Row, headerMap *map[int]string, sp *SalaryStandardsPos
 	return nil
 }
 
+//员工信息
 func readStaff(sheet *xlsx.Sheet, staffChan chan Staff, finishChan chan string) error {
 	headerMap := make(map[int]string)
 
@@ -221,10 +230,18 @@ func readStaff(sheet *xlsx.Sheet, staffChan chan Staff, finishChan chan string) 
 		if len(staff.Name) == 0 {
 			continue
 		}
-
+		//填充计算方法
+		switch staff.Area {
+		case "范崎路":
+			staff.Calc = CalcFQ
 		//代发人员计入范崎路
-		if staff.Area == "代发工资" {
+		case "代发工资":
+			staff.Calc = CalcFQ
 			staff.Area = "范崎路"
+		case "外派":
+			staff.Calc = CalcWP
+		default:
+			staff.Calc = CalcCommon
 		}
 
 		staffChan <- staff
@@ -262,6 +279,7 @@ func readData(staffChan chan Staff, ssChan chan SalaryStandardsTemp, spChan chan
 	return nil
 }
 
+//单行员工信息
 func visitRow(row *xlsx.Row, headerMap *map[int]string, staff *Staff) {
 	isReadHeader := len(*headerMap) == 0
 

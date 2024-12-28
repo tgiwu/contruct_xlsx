@@ -78,20 +78,6 @@ func readConfig() {
 	if len(mConf.Headers) != 0 {
 		headersMap := make(map[string]string, len(mConf.Headers))
 
-		//Id             int    //序号
-		// Name           string //姓名
-		// Should         int    //应出勤
-		// Actual         int    //实出勤
-		// Standard       int    //应发工资
-		// NetPay         int    //实发工资
-		// OvertimePay    int    //加班工资
-		// PerformancePay int    //绩效工资 由于模板中有此项，暂时保留，值为0
-		// SpecialPay     int    //特殊费用
-		// Deduction      int    //扣款 由于模板中有此项，暂时保留，值为0
-		// Account        int    //合计
-		// BackUp         string //备注
-		// Postion        string //区域，用于分组
-
 		for _, header := range mConf.Headers {
 			switch header {
 			case "序号":

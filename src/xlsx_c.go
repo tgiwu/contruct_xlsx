@@ -37,6 +37,7 @@ func (ee EmptyError) Error() string {
 	return ee.msg
 }
 
+// 构建excel
 func constructXlsx(salaryMap map[string]map[string]Salary) error {
 	fmt.Println("construct xlsx start")
 	excel := excelize.NewFile()
@@ -48,17 +49,16 @@ func constructXlsx(salaryMap map[string]map[string]Salary) error {
 
 	slices.Sort(keys)
 
+	//生成单个工作表
 	for _, key := range keys {
 		constructSalarySheet(excel, key, salaryMap[key])
 	}
-
+	//生成总览表
 	constructOverviewSheet(excel, overviewArr)
-
+	//删除默认工作表
 	excel.DeleteSheet("Sheet1")
-
+	//删除旧文件
 	delFileIfExist(mConf.OutputPath, mConf.FileName)
-
-	
 
 	excel.SaveAs(filepath.Join(mConf.OutputPath, mConf.FileName))
 	fmt.Println("construct xlsx end")
@@ -161,10 +161,25 @@ func calcTotal(salary *map[string]Salary, list *[]Salary, total *Salary, overvie
 		numOfStaff++
 	}
 
+	indexStandard, indexNetPay, indexAccount := 0, 0, 0
+
+	for i, s := range mConf.Headers {
+		switch s {
+		case "应发工资":
+			indexStandard = i
+		case "实发工资":
+			indexNetPay = i
+		case "合计":
+			indexAccount = i
+		}
+	}
+
+	total.totalStandard = fmt.Sprintf("=SUM(%s:%s)", pos(2, indexStandard), pos(len(*list), indexStandard))
+	total.totalNetPay = fmt.Sprintf("=SUM(%s:%s)", pos(2, indexNetPay), pos(len(*list), indexNetPay))
+	total.totalAccount = fmt.Sprintf("=SUM(%s:%s)", pos(2, indexAccount), pos(len(*list), indexAccount))
+
+	fmt.Printf("%s   ,%s    , %s /n", total.totalStandard, total.totalNetPay, total.totalAccount)
 	total.Name = "合计"
-	total.Standard = standardTotal
-	total.NetPay = netpayTotal
-	total.Account = accountTotal
 
 	overview.AccountTotal = accountTotal
 	overview.NumOfStaff = numOfStaff
@@ -251,11 +266,11 @@ func fillTotal(excel *excelize.File, sheetName string, row int, total Salary) {
 	excel.SetCellValue(sheetName, pos(row, 0), total.Name)
 	excel.SetCellStyle(sheetName, pos(row, 0), pos(row, 3), cellStyle(excel, TYPE_ROW_TOTAL))
 
-	excel.SetCellValue(sheetName, pos(row, 4), total.Standard)
-	excel.SetCellValue(sheetName, pos(row, 5), total.NetPay)
+	excel.SetCellFormula(sheetName, pos(row, 4), total.totalStandard)
+	excel.SetCellFormula(sheetName, pos(row, 5), total.totalNetPay)
 	excel.SetCellStyle(sheetName, pos(row, 4), pos(row, len(mConf.Headers)-3), cellStyle(excel, TYPE_ROW_NORMAL))
 
-	excel.SetCellValue(sheetName, pos(row, len(mConf.Headers)-2), total.Account)
+	excel.SetCellFormula(sheetName, pos(row, len(mConf.Headers)-2), total.totalAccount)
 	excel.SetCellStyle(sheetName, pos(row, len(mConf.Headers)-2), pos(row, len(mConf.Headers)-2), cellStyle(excel, TYPE_ROW_TOTAL))
 
 	excel.SetCellStyle(sheetName, pos(row, len(mConf.Headers)-1), pos(row, len(mConf.Headers)-1), cellStyle(excel, TYPE_ROW_TOTAL))
