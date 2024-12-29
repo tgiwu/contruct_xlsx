@@ -178,7 +178,6 @@ func calcTotal(salary *map[string]Salary, list *[]Salary, total *Salary, overvie
 	total.totalNetPay = fmt.Sprintf("=SUM(%s:%s)", pos(2, indexNetPay), pos(len(*list), indexNetPay))
 	total.totalAccount = fmt.Sprintf("=SUM(%s:%s)", pos(2, indexAccount), pos(len(*list), indexAccount))
 
-	fmt.Printf("%s   ,%s    , %s /n", total.totalStandard, total.totalNetPay, total.totalAccount)
 	total.Name = "合计"
 
 	overview.AccountTotal = accountTotal
@@ -230,7 +229,11 @@ func fillRow(excel *excelize.File, sheetName string, salaries []Salary) {
 				kind := value.Kind()
 				switch kind {
 				case reflect.String:
-					excel.SetCellStr(sheetName, pos(i+2, j), value.String())
+					if strings.HasPrefix(value.String(), "=") {
+						excel.SetCellFormula(sheetName, pos(i+2, j), value.String())
+					} else {
+						excel.SetCellStr(sheetName, pos(i+2, j), value.String())
+					}
 				case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
 					excel.SetCellInt(sheetName, pos(i+2, j), int(value.Int()))
 				default:

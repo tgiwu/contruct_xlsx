@@ -158,6 +158,7 @@ func sortSalaryById(salaries map[string]Salary) []Salary {
 	return salariesList
 }
 
+//计算表格位置，坐标由0开始
 func pos(row int, col int) string {
 	first := int('A')
 

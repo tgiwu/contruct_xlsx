@@ -251,7 +251,7 @@ func readStaff(sheet *xlsx.Sheet, staffChan chan Staff, finishChan chan string) 
 
 	return nil
 }
-
+//读取员工、岗位信息
 func readData(staffChan chan Staff, ssChan chan SalaryStandardsTemp, spChan chan SalaryStandardsPost, finishChan chan string) error {
 	file, err := xlsx.OpenFile(mConf.StaffFilePath)
 	if err != nil {

@@ -99,7 +99,7 @@ func readConfig() {
 			case "扣款":
 				headersMap[header] = "Deduction"
 			case "合计":
-				headersMap[header] = "Account"
+				headersMap[header] = "AccountFormula"
 			case "备注":
 				headersMap[header] = "BackUp"
 			default:

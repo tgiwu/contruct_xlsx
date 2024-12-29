@@ -7,19 +7,20 @@ import (
 )
 
 type Salary struct {
-	Id          int    //序号
-	Name        string //姓名
-	Should      int    //应出勤
-	Actual      int    //实出勤
-	Standard    int    //应发工资
-	NetPay      int    //实发工资
-	OvertimePay int    //加班工资
-	SpecialPay  int    //特殊费用
-	Deduction   int    //扣款,社保扣款或罚款
-	Account     int    //合计
-	BackUp      string //备注
-	Postion     string //区域，用于分组
-	SalaryTotal        //合计行
+	Id             int    //序号
+	Name           string //姓名
+	Should         int    //应出勤
+	Actual         int    //实出勤
+	Standard       int    //应发工资
+	NetPay         int    //实发工资
+	OvertimePay    int    //加班工资
+	SpecialPay     int    //特殊费用
+	Deduction      int    //扣款,社保扣款或罚款
+	Account        int    //合计（不再用于展示）
+	AccountFormula string //合计公式
+	BackUp         string //备注
+	Postion        string //区域，用于分组
+	SalaryTotal           //合计行
 	//todo: 写入表之前不能确定具体位置，暂时只能绑定列名
 	ErrorMap map[string]string //错误批注，如有错误单元格标红并添加批注;key:列名；value：错误描述
 }
@@ -161,7 +162,22 @@ func calcAfter(staff *Staff, attendance *Attendance, salary *Salary) error {
 		salary.SpecialPay += attendance.Special
 	}
 
+	//已替换为公式
 	salary.Account = salary.NetPay + salary.OvertimePay + salary.SpecialPay - salary.Deduction
+
+	sumStart, sumEnd, deduction := 0, 0, 0
+	for i, s := range mConf.Headers {
+		switch s {
+		case "实发工资":
+			sumStart = i
+		case "特殊费用":
+			sumEnd = i
+		case "扣款":
+			deduction = i
+		}
+	}
+
+	salary.AccountFormula = fmt.Sprintf("=SUM(%s:%s) - %s", pos(salary.Id+1, sumStart), pos(salary.Id+1, sumEnd), pos(salary.Id+1, deduction))
 	salary.Postion = staff.Area
 	salary.BackUp = attendance.Backup
 
