@@ -122,18 +122,3 @@ func visitorRow(row *xlsx.Row, attendance *Attendance, headerMap *map[int]string
 	}
 	return nil
 }
-
-// func rowVisitor(r *xlsx.Row) (err error) {
-// 	err = r.ForEachCell(cellVisitor)
-// 	return
-// }
-
-// func cellVisitor(c *xlsx.Cell) error {
-// 	value, err := c.FormattedValue()
-// 	if err!= nil {
-// 		fmt.Println(err.Error())
-// 	} else {
-// 		fmt.Println("cell value", value)
-// 	}
-// 	return err
-// }

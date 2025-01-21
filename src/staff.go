@@ -45,17 +45,7 @@ type Staff struct {
 
 type Calc func(staff *Staff, attendance *Attendance, salary *Salary) error
 
-type SalaryStandardsTemp struct {
-	TempType     string //临勤类型
-	SalaryPerDay int    //日薪
-	Description  string //说明
-}
 
-type SalaryStandardsPost struct {
-	PostType       string //岗位类型
-	SalaryPerMonth int    //月薪
-	Description    string //描述
-}
 
 type BackUpStaff struct {
 	BackUpSal []BackUpStaffSalary `json:"salary"`

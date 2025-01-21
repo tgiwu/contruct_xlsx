@@ -37,9 +37,24 @@ type Overview struct {
 	AccountTotal int    //总计费用
 	BackUp       string //特殊说明
 }
+//临勤工资标准
+type SalaryStandardsTemp struct {
+	TempType     string //临勤类型
+	SalaryPerDay int    //日薪
+	Description  string //说明
+}
+//借调工资标准
+type SalaryStandardsPost struct {
+	PostType       string //岗位类型
+	SalaryPerMonth int    //月薪
+	Description    string //描述
+}
 
 // 根据字数定制备注列宽度
 var maxLenForBackupMap map[string]int
+
+// 工资计算错误，定义负值，便于在excel中标记
+const ERROR_SALARY = -99999
 
 type SalaryBuildError struct {
 	msg string
@@ -137,6 +152,7 @@ func calcBefore(staff *Staff, attendance *Attendance, salary *Salary) error {
 
 func calcAfter(staff *Staff, attendance *Attendance, salary *Salary) error {
 
+	//处理借调
 	if attendance.TempTransfer != 0 || len(attendance.TempTransferPost) != 0 {
 		v, found := spMap[attendance.TempTransferPost]
 		if found {
@@ -145,7 +161,6 @@ func calcAfter(staff *Staff, attendance *Attendance, salary *Salary) error {
 				salary.SpecialPay += attendance.TempTransfer * 100
 			} else {
 				salary.SpecialPay += v / attendance.Duty * attendance.TempTransfer
-				// fmt.Printf("%s temp transfer post is %s; during %d;transfer salary is %d\n", attendance.Name, attendance.TempTransferPost, attendance.TempTransfer, v/attendance.Duty*attendance.TempTransfer)
 			}
 		} else {
 
@@ -153,11 +168,11 @@ func calcAfter(staff *Staff, attendance *Attendance, salary *Salary) error {
 			salary.SpecialPay = -999999 //我找到岗位
 		}
 	}
-
+	//病假
 	if attendance.Sickness != 0 {
 		salary.SpecialPay += int(float64(staff.Salary/attendance.Duty) * 0.8 * float64(attendance.Sickness))
 	}
-
+	//特殊费用
 	if attendance.Special != 0 {
 		salary.SpecialPay += attendance.Special
 	}
@@ -232,14 +247,18 @@ func CalcWP(staff *Staff, attendance *Attendance, salary *Salary) error {
 	//若法定节假日天数多余实际出勤天数，考勤错误
 	if salary.Actual-attendance.Temp_12 < 0 {
 		salary.ErrorMap["实际出勤"] += fmt.Sprintf("法定节假日数多余实际出勤天数 实际出勤 %d，法定节假日 %d", attendance.Actal, attendance.Temp_12)
-		salary.Actual = -999999
+		salary.Actual = ERROR_SALARY
 	} else {
-		if attendance.Duty < attendance.Actal {
+		switch {
+		case attendance.Duty < attendance.Actal:
 			salary.ErrorMap["实发工资"] += fmt.Sprintf("实际出勤天数大于应出勤天数，但没有找到只算方法 应出勤 %d， 实际出勤 %d；", attendance.Duty, attendance.Actal)
-			salary.NetPay = -999999 //出勤天数大于应出勤天数，需确认计算方式
-		} else {
+			salary.NetPay = ERROR_SALARY //出勤天数大于应出勤天数，需确认计算方式
+		case attendance.Duty == attendance.Actal:
+			salary.NetPay = staff.Salary
+		default:
 			salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
 		}
+
 		//法定节假日三倍工资,三倍以北京市最低工资2420计算，每月平均工作天数21.75天
 		salary.OvertimePay += int(float64(attendance.Temp_12) * (float64(2420) / float64(21.75)) * 3)
 		//值班每天 60
