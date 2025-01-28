@@ -1,4 +1,4 @@
 attendance_folder: "../attendance"
-staff_file_path: "/Users/yangzhang/Downloads/工作/查询表/全体人员信息.xlsx"
+staff_file_path: "/Users/yangzhang/Downloads/工作/查询表/全体员工信息.xlsx"
 output_path: "../output"
 

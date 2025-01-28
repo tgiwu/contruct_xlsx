@@ -38,8 +38,8 @@ func (ee EmptyError) Error() string {
 }
 
 // 构建excel
-func constructXlsx(salaryMap map[string]map[string]Salary) error {
-	fmt.Println("construct xlsx start")
+func constructSalaryXlsx(salaryMap map[string]map[string]Salary, fileName string) error {
+	fmt.Printf("construct xlsx %s start\n", fileName)
 	excel := excelize.NewFile()
 
 	keys := make([]string, 0, len(salaryMap))
@@ -48,6 +48,8 @@ func constructXlsx(salaryMap map[string]map[string]Salary) error {
 	}
 
 	slices.Sort(keys)
+	// overviewArr will be used multi times, empty it before use
+	overviewArr = make([]Overview, 0)
 
 	//生成单个工作表
 	for _, key := range keys {
@@ -57,11 +59,15 @@ func constructXlsx(salaryMap map[string]map[string]Salary) error {
 	constructOverviewSheet(excel, overviewArr)
 	//删除默认工作表
 	excel.DeleteSheet("Sheet1")
-	//删除旧文件
-	delFileIfExist(mConf.OutputPath, mConf.FileName)
 
-	excel.SaveAs(filepath.Join(mConf.OutputPath, mConf.FileName))
-	fmt.Println("construct xlsx end")
+	if len(fileName) == 0 {
+		delFileIfExist(mConf.OutputPath, mConf.FileName)
+		excel.SaveAs(filepath.Join(mConf.OutputPath, mConf.FileName))
+	} else {
+		delFileIfExist(mConf.OutputPath, fileName)
+		excel.SaveAs(filepath.Join(mConf.OutputPath, fileName))
+	}
+	fmt.Printf("construct xlsx %s end\n", fileName)
 	return nil
 }
 
@@ -71,13 +77,13 @@ func constructOverviewSheet(excel *excelize.File, overviews []Overview) {
 		return strings.Compare(a.Area, b.Area)
 	})
 
-	excel.NewSheet("总览")
+	excel.NewSheet(SALARY_SHEET_NAME_OVERVIEW)
 
-	excel.MergeCell("总览", pos(0, 0), pos(0, len(mConf.OverviewHeader)-1))
-	excel.SetCellValue("总览", pos(0, 0), fmt.Sprintf("%d年%d月工资总览", mConf.Year, mConf.Month))
-	excel.SetCellStyle("总览", pos(0, 0), pos(0, len(mConf.OverviewHeader)-1), cellStyle(excel, TYPE_ROW_TITLE))
+	excel.MergeCell(SALARY_SHEET_NAME_OVERVIEW, pos(0, 0), pos(0, len(mConf.OverviewHeader)-1))
+	excel.SetCellValue(SALARY_SHEET_NAME_OVERVIEW, pos(0, 0), fmt.Sprintf("%d年%d月工资总览", mConf.Year, mConf.Month))
+	excel.SetCellStyle(SALARY_SHEET_NAME_OVERVIEW, pos(0, 0), pos(0, len(mConf.OverviewHeader)-1), cellStyle(excel, TYPE_ROW_TITLE))
 
-	fillHeader(excel, "总览", mConf.OverviewHeader)
+	fillHeader(excel, SALARY_SHEET_NAME_OVERVIEW, mConf.OverviewHeader)
 
 	numOfStaffTotal := 0
 	account := 0
@@ -85,7 +91,7 @@ func constructOverviewSheet(excel *excelize.File, overviews []Overview) {
 		for j, s := range mConf.OverviewHeader {
 
 			if s == "序号" {
-				excel.SetCellInt("总览", pos(i+2, j), i+1)
+				excel.SetCellInt(SALARY_SHEET_NAME_OVERVIEW, pos(i+2, j), i+1)
 			} else {
 				v := reflect.ValueOf(overview)
 				if v.Kind() == reflect.Struct {
@@ -94,38 +100,38 @@ func constructOverviewSheet(excel *excelize.File, overviews []Overview) {
 					kind := value.Kind()
 					switch kind {
 					case reflect.String:
-						excel.SetCellStr("总览", pos(i+2, j), value.String())
+						excel.SetCellStr(SALARY_SHEET_NAME_OVERVIEW, pos(i+2, j), value.String())
 					case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
-						if s == "发放人数" {
+						if s == SALARY_OVERVIEW_COLUMN_NUMBER {
 							numOfStaffTotal += int(value.Int())
-						} else if s == "总计费用" {
+						} else if s == SALARY_OVERVIEW_COLUMN_SALARY {
 							account += int(value.Int())
 						}
-						excel.SetCellInt("总览", pos(i+2, j), int(value.Int()))
+						excel.SetCellInt(SALARY_SHEET_NAME_OVERVIEW, pos(i+2, j), int(value.Int()))
 					default:
-						excel.SetCellValue("总览", pos(i+2, j), value)
+						excel.SetCellValue(SALARY_SHEET_NAME_OVERVIEW, pos(i+2, j), value)
 					}
 				}
 			}
 
 			if i%2 == 0 {
-				excel.SetCellStyle("总览", pos(i+2, j), pos(i+2, j), cellStyle(excel, STYLE_TYPE_NORMAL))
+				excel.SetCellStyle(SALARY_SHEET_NAME_OVERVIEW, pos(i+2, j), pos(i+2, j), cellStyle(excel, STYLE_TYPE_NORMAL))
 			} else {
-				excel.SetCellStyle("总览", pos(i+2, j), pos(i+2, j), cellStyle(excel, STYLE_TYPE_NORMAL_GREY))
+				excel.SetCellStyle(SALARY_SHEET_NAME_OVERVIEW, pos(i+2, j), pos(i+2, j), cellStyle(excel, STYLE_TYPE_NORMAL_GREY))
 			}
 		}
 	}
 
-	excel.MergeCell("总览", pos(len(overviews)+2, 0), pos(len(overviews)+2, 1))
+	excel.MergeCell(SALARY_SHEET_NAME_OVERVIEW, pos(len(overviews)+2, 0), pos(len(overviews)+2, 1))
 
-	excel.SetCellStr("总览", pos(len(overviews)+2, 0), "合计")
-	excel.SetCellStyle("总览", pos(len(overviews)+2, 0), pos(len(overviews)+2, 1), cellStyle(excel, TYPE_ROW_TOTAL))
+	excel.SetCellStr(SALARY_SHEET_NAME_OVERVIEW, pos(len(overviews)+2, 0), "合计")
+	excel.SetCellStyle(SALARY_SHEET_NAME_OVERVIEW, pos(len(overviews)+2, 0), pos(len(overviews)+2, 1), cellStyle(excel, TYPE_ROW_TOTAL))
 
-	excel.SetCellInt("总览", pos(len(overviews)+2, slices.Index(mConf.OverviewHeader, "发放人数")), numOfStaffTotal)
-	excel.SetCellStyle("总览", pos(len(overviews)+2, slices.Index(mConf.OverviewHeader, "发放人数")), pos(len(overviews)+2, slices.Index(mConf.OverviewHeader, "发放人数")), cellStyle(excel, STYLE_TYPE_NORMAL))
+	excel.SetCellInt(SALARY_SHEET_NAME_OVERVIEW, pos(len(overviews)+2, slices.Index(mConf.OverviewHeader, SALARY_OVERVIEW_COLUMN_NUMBER)), numOfStaffTotal)
+	excel.SetCellStyle(SALARY_SHEET_NAME_OVERVIEW, pos(len(overviews)+2, slices.Index(mConf.OverviewHeader, SALARY_OVERVIEW_COLUMN_NUMBER)), pos(len(overviews)+2, slices.Index(mConf.OverviewHeader, "发放人数")), cellStyle(excel, STYLE_TYPE_NORMAL))
 
-	excel.SetCellInt("总览", pos(len(overviews)+2, slices.Index(mConf.OverviewHeader, "总计费用")), account)
-	excel.SetCellStyle("总览", pos(len(overviews)+2, slices.Index(mConf.OverviewHeader, "总计费用")), pos(len(overviews)+2, slices.Index(mConf.OverviewHeader, "备注")), cellStyle(excel, STYLE_TYPE_TOTAL))
+	excel.SetCellInt(SALARY_SHEET_NAME_OVERVIEW, pos(len(overviews)+2, slices.Index(mConf.OverviewHeader, SALARY_OVERVIEW_COLUMN_SALARY)), account)
+	excel.SetCellStyle(SALARY_SHEET_NAME_OVERVIEW, pos(len(overviews)+2, slices.Index(mConf.OverviewHeader, SALARY_OVERVIEW_COLUMN_SALARY)), pos(len(overviews)+2, slices.Index(mConf.OverviewHeader, "备注")), cellStyle(excel, STYLE_TYPE_TOTAL))
 
 }
 
@@ -142,7 +148,7 @@ func constructSalarySheet(excel *excelize.File, sheetName string, salary map[str
 
 	fillTitle(excel, sheetName, getTitle(sheetName, mConf.Month, mConf.Year))
 	fillHeader(excel, sheetName, mConf.Headers)
-	fillRow(excel, sheetName, sortSalaryById(salaryMap[sheetName]))
+	fillRow(excel, sheetName, sortSalaryById(salary))
 	fillTotal(excel, sheetName, len(salary)+2, total)
 
 }
@@ -370,4 +376,77 @@ func cellStyle(excel *excelize.File, styleNo int) int {
 
 func getTitle(sheetName string, month int, year int) string {
 	return fmt.Sprintf("%s%d年%d月工资", sheetName, year, month)
+}
+
+func constructTransferInfoXlsx(transferInfos *[]TransferInfo, fileName string) {
+	excel := excelize.NewFile()
+
+	constructTransferInfoSheet(excel, "transferInfo", transferInfos)
+
+	//删除默认工作表
+	excel.DeleteSheet("Sheet1")
+
+	if len(fileName) == 0 {
+		delFileIfExist(mConf.OutputPath, mConf.FileName)
+		excel.SaveAs(filepath.Join(mConf.OutputPath, "transfer.xlsx"))
+	} else {
+		delFileIfExist(mConf.OutputPath, fileName)
+		excel.SaveAs(filepath.Join(mConf.OutputPath, fileName))
+	}
+}
+
+func constructTransferInfoSheet(excel *excelize.File, sheet string, transferInfos *[]TransferInfo) {
+	excel.NewSheet(sheet)
+	fillTransferInfoTitle(excel, sheet, "转账信息")
+	fillTransferInfoHeader(excel, sheet, &TRANSFER_INFO_COLUNM)
+	fillTransferinfoRows(excel, sheet, transferInfos)
+
+}
+
+func fillTransferInfoTitle(excel *excelize.File, sheet string, title string) {
+	excel.MergeCell(sheet, pos(0, 0), pos(0, len(TRANSFER_INFO_COLUNM)-1))
+	excel.SetCellValue(sheet, pos(0, 0), title)
+	excel.SetCellStyle(sheet, pos(0, 0), pos(0, len(TRANSFER_INFO_COLUNM)-1), cellStyle(excel, TYPE_ROW_TITLE))
+}
+
+func fillTransferInfoHeader(excel *excelize.File, sheet string, colonms *[]string) {
+	for i, header := range *colonms {
+		excel.SetCellValue(sheet, pos(1, i), header)
+
+		switch header {
+		case TRANSFER_INFO_COLUNM[0], TRANSFER_INFO_COLUNM[1], TRANSFER_INFO_COLUNM[3]:
+			excel.SetColWidth(sheet, pos(-1, i), pos(-1, i), 25.33)
+		case TRANSFER_INFO_COLUNM[2], TRANSFER_INFO_COLUNM[4], TRANSFER_INFO_COLUNM[5]:
+			excel.SetColWidth(sheet, pos(-1, i), pos(-1, i), 15.33)
+		default:
+			excel.SetColWidth(sheet, pos(-1, i), pos(-1, i), 20.83)
+		}
+	}
+	excel.SetCellStyle(sheet, pos(1, 0), pos(1, len(*colonms)-1), cellStyle(excel, TYPE_ROW_HEADER))
+}
+
+func fillTransferinfoRows(excel *excelize.File, sheet string, transferInfos *[]TransferInfo) {
+	for i, info := range *transferInfos {
+		for j, tag := range TRANSFER_INFO_COLUNM_TAG {
+			v := reflect.ValueOf(info)
+			if v.Kind() == reflect.Struct {
+				value := v.FieldByName(tag)
+
+				kind := value.Kind()
+				switch kind {
+				case reflect.String:
+					excel.SetCellStr(sheet, pos(i+2, j), value.String())
+				case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
+					excel.SetCellInt(sheet, pos(i+2, j), int(value.Int()))
+				default:
+					excel.SetCellValue(sheet, pos(i+2, j), value)
+				}
+			}
+			if i%2 == 0 {
+				excel.SetCellStyle(sheet, pos(i+2, j), pos(i+2, j), cellStyle(excel, STYLE_TYPE_NORMAL))
+			} else {
+				excel.SetCellStyle(sheet, pos(i+2, j), pos(i+2, j), cellStyle(excel, STYLE_TYPE_NORMAL_GREY))
+			}
+		}
+	}
 }

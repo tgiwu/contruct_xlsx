@@ -25,11 +25,13 @@ type config struct {
 	MeteredKey                   string   `mapstructure:"metered_key"`
 	CorporationName              string   `mapstructure:"corporation_name"`
 	CorporationAccount           string   `mapstructure:"corporation_account"`
+	SalaryPurpose                string   `mapstructure:"salary_purpose"`
 	OverviewHeader               []string `mapstructure:"overview_header"`
 	OverviewHeaderMap            map[string]string
 	SheetNameStaff               string `mapstructure:"staff_sheet_name"`
 	SheetNameSalaryStandardsTemp string `mapstructure:"salary_standards_temp_sheet_name"`
 	SheetNameSalaryStandardsPost string `mapstructure:"salary_standards_post_sheet_name"`
+	ConstructTransferFile        bool   `mapstructure:"construct_transfer_file"`
 }
 
 var mConf config

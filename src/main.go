@@ -2,15 +2,28 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/unidoc/unioffice/common/license"
 )
 
+// area to (name to attendance)
 var attMap = make(map[string]map[string]Attendance)
-var staffMap = make(map[string]map[string]Staff)
+
+// name to staff
+var staffMap = make(map[string]Staff)
+
+// area to (name to salary)
 var salaryMap = make(map[string]map[string]Salary)
+
+// area to (name to salary) with risk area staff
+var salaryRiskMap = make(map[string]map[string]Salary)
+
+// temp
 var ssMap = make(map[string]int)
+
+// post
 var spMap = make(map[string]int)
 
 var wg sync.WaitGroup
@@ -59,14 +72,20 @@ func main() {
 
 	fmt.Println("read all finish ~~~~~")
 
-	err = buildSalaries(staffMap, attMap, &salaryMap)
+	err = buildSalaries(staffMap, attMap, &salaryMap, &salaryRiskMap)
 
 	if err != nil {
 		panic("build salary map failed " + err.Error())
 	}
+	constructSalaryXlsx(salaryMap, "")
+	s := strings.Split(mConf.FileName, ".")
+	constructSalaryXlsx(salaryRiskMap, fmt.Sprintf("%s_风险人员.%s", s[0], s[1]))
 
-	constructXlsx(salaryMap)
-
+	transferInfos := new([]TransferInfo)
+	buildTransferInfo(salaryRiskMap, staffMap, transferInfos)
+	constructTransferInfoXlsx(transferInfos, "")
+	
+	fmt.Println("finish")
 }
 
 func handleChan(attChan chan Attendance, finishChan chan string, staffChan chan Staff, ssChan chan SalaryStandardsTemp, spChan chan SalaryStandardsPost, wg *sync.WaitGroup, count int) {
@@ -81,12 +100,7 @@ func handleChan(attChan chan Attendance, finishChan chan string, staffChan chan 
 			attendances[att.Name] = att
 			attMap[att.Postion] = attendances
 		case staff := <-staffChan:
-			staffs, found := staffMap[staff.Area]
-			if !found {
-				staffs = make(map[string]Staff, 0)
-			}
-			staffs[staff.Name] = staff
-			staffMap[staff.Area] = staffs
+			staffMap[staff.Name] = staff
 		case ss := <-ssChan:
 			ssMap[ss.TempType] = ss.SalaryPerDay
 		case sp := <-spChan:
