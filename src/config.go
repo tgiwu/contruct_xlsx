@@ -21,6 +21,8 @@ type config struct {
 	Month                        int      `mapstructure:"month"`
 	Year                         int      `mapstructure:"year"`
 	Headers                      []string `mapstructure:"headers"`
+	HeadersRisk                  []string `mapstructure:"headers_risk"`
+	HeadersRiskMap               map[string]string
 	HeadersMap                   map[string]string
 	MeteredKey                   string   `mapstructure:"metered_key"`
 	CorporationName              string   `mapstructure:"corporation_name"`
@@ -78,59 +80,71 @@ func readConfig() {
 	}
 
 	if len(mConf.Headers) != 0 {
-		headersMap := make(map[string]string, len(mConf.Headers))
-
-		for _, header := range mConf.Headers {
-			switch header {
-			case "序号":
-				headersMap[header] = "Id"
-			case "姓名":
-				headersMap[header] = "Name"
-			case "应出勤":
-				headersMap[header] = "Should"
-			case "实际出勤":
-				headersMap[header] = "Actual"
-			case "应发工资":
-				headersMap[header] = "Standard"
-			case "实发工资":
-				headersMap[header] = "NetPay"
-			case "加班工资":
-				headersMap[header] = "OvertimePay"
-			case "特殊费用":
-				headersMap[header] = "SpecialPay"
-			case "扣款":
-				headersMap[header] = "Deduction"
-			case "合计":
-				headersMap[header] = "AccountFormula"
-			case "备注":
-				headersMap[header] = "BackUp"
-			default:
-				fmt.Printf("UNKNOWN HEADER named %s \n", header)
-			}
-		}
-
-		mConf.HeadersMap = headersMap
+		headersMap := new(map[string]string)
+		analysisHeader(mConf.Headers, headersMap)
+		mConf.HeadersMap = *headersMap
 	}
 
 	if len(mConf.OverviewHeader) != 0 {
-		overviewHeaderMap := make(map[string]string, len(mConf.OverviewHeader))
-		for _, header := range mConf.OverviewHeader {
-			//序号由行号决定
-			switch header {
-			case "区域":
-				overviewHeaderMap[header] = "Area"
-			case "发放人数":
-				overviewHeaderMap[header] = "NumOfStaff"
-			case "总计费用":
-				overviewHeaderMap[header] = "AccountTotal"
-			case "备注":
-				overviewHeaderMap[header] = "BackUp"
-			default:
-				//ignore
-			}
-		}
-		mConf.OverviewHeaderMap = overviewHeaderMap
+
+		overviewHeaderMap := new(map[string]string)
+		analysisHeader(mConf.OverviewHeader, overviewHeaderMap)
+		mConf.OverviewHeaderMap = *overviewHeaderMap
+
+	}
+
+	if len(mConf.HeadersRisk) != 0 {
+		headerRiskMap := new(map[string]string)
+		analysisHeader(mConf.HeadersRisk, headerRiskMap)
+		mConf.HeadersRiskMap = *headerRiskMap
 	}
 
 	fmt.Printf("config %+v \n", mConf)
+}
+
+func analysisHeader(list []string, resultMap *map[string]string) error {
+
+	if (*resultMap) == nil {
+		*resultMap = make(map[string]string, len(list))
+	}
+
+	if len(list) != 0 {
+
+		for _, header := range list {
+			switch header {
+			case "序号":
+				(*resultMap)[header] = "Id"
+			case "姓名":
+				(*resultMap)[header] = "Name"
+			case "应出勤":
+				(*resultMap)[header] = "Should"
+			case "实际出勤":
+				(*resultMap)[header] = "Actual"
+			case "应发工资":
+				(*resultMap)[header] = "Standard"
+			case "实发工资":
+				(*resultMap)[header] = "NetPay"
+			case "加班工资":
+				(*resultMap)[header] = "OvertimePay"
+			case "特殊费用":
+				(*resultMap)[header] = "SpecialPay"
+			case "扣款":
+				(*resultMap)[header] = "Deduction"
+			case "合计":
+				(*resultMap)[header] = "AccountFormula"
+			case "备注":
+				(*resultMap)[header] = "BackUp"
+			case "区域":
+				(*resultMap)[header] = "Area"
+			case "发放人数":
+				(*resultMap)[header] = "NumOfStaff"
+			case "总计费用":
+				(*resultMap)[header] = "AccountTotal"
+			default:
+				return MyError{fmt.Sprintf("UNKNOWN HEADER named %s \n", header)}
+
+			}
+		}
+	}
+	return nil
 }

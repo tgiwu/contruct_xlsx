@@ -19,7 +19,7 @@ type Salary struct {
 	Account        int    //合计（不再用于展示）
 	AccountFormula string //合计公式
 	BackUp         string //备注
-	Postion        string //区域，用于分组
+	Area           string //区域，用于分组
 	SalaryTotal           //合计行
 	//todo: 写入表之前不能确定具体位置，暂时只能绑定列名
 	ErrorMap map[string]string //错误批注，如有错误单元格标红并添加批注;key:列名；value：错误描述
@@ -128,7 +128,6 @@ func buildSalaries(staffs map[string]Staff, attendances map[string]map[string]At
 					salaryNextIdMap[SHEET_NAME_RISK] = 1
 				}
 				salaryCopy.Id = salaryNextIdMap[SHEET_NAME_RISK]
-				salaryCopy.Postion = SHEET_NAME_RISK
 				//recalc account formula
 				salaryCopy.AccountFormula = fmt.Sprintf("=SUM(%s:%s) - %s", pos(salaryCopy.Id+1, sumStart),
 					pos(salaryCopy.Id+1, sumEnd), pos(salaryCopy.Id+1, deduction))
@@ -137,20 +136,20 @@ func buildSalaries(staffs map[string]Staff, attendances map[string]map[string]At
 				(*salaryRiskMap)[SHEET_NAME_RISK] = items
 				salaryNextIdMap[SHEET_NAME_RISK]++
 			} else {
-				items, found := (*salaryRiskMap)[attendance.Postion]
+				items, found := (*salaryRiskMap)[SHEET_NAME_NO_RISK]
 				if !found {
 					items = make(map[string]Salary, 0)
-					salaryNextIdMap[attendance.Postion] = 1
+					salaryNextIdMap[SHEET_NAME_NO_RISK] = 1
 				}
-				salaryCopy.Id = salaryNextIdMap[attendance.Postion]
+				salaryCopy.Id = salaryNextIdMap[SHEET_NAME_NO_RISK]
 				//recalc account formula
 				salaryCopy.AccountFormula = fmt.Sprintf("=SUM(%s:%s) - %s", pos(salaryCopy.Id+1, sumStart),
 					pos(salaryCopy.Id+1, sumEnd), pos(salaryCopy.Id+1, deduction))
 
 				items[name] = *salaryCopy
 
-				(*salaryRiskMap)[attendance.Postion] = items
-				salaryNextIdMap[attendance.Postion]++
+				(*salaryRiskMap)[SHEET_NAME_NO_RISK] = items
+				salaryNextIdMap[SHEET_NAME_NO_RISK]++
 			}
 		}
 	}
@@ -239,7 +238,7 @@ func calcAfter(staff *Staff, attendance *Attendance, salary *Salary) error {
 	}
 
 	salary.AccountFormula = fmt.Sprintf("=SUM(%s:%s) - %s", pos(salary.Id+1, sumStart), pos(salary.Id+1, sumEnd), pos(salary.Id+1, deduction))
-	salary.Postion = staff.Area
+	salary.Area = staff.Area
 	salary.BackUp = attendance.Backup
 
 	if length, found := maxLenForBackupMap[staff.Area]; found {
@@ -305,13 +304,15 @@ func CalcWP(staff *Staff, attendance *Attendance, salary *Salary) error {
 			salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
 		}
 
-		//法定节假日三倍工资,三倍以北京市最低工资2420计算，每月平均工作天数21.75天
-		salary.OvertimePay += int(float64(attendance.Temp_12) * (float64(2420) / float64(21.75)) * 3)
+		//法定节假日三倍工资,每天基本工资80，3倍240
+		salary.OvertimePay += int(attendance.Temp_12 * ssMap["Temp_Guard_Holiday"])
 		//值班每天 60
-		salary.OvertimePay += attendance.Temp_4 * ssMap["Temp_Guard"]
+		salary.OvertimePay += attendance.Temp_Guard * ssMap["Temp_Guard"]
 	}
 
 	err = calcAfter(staff, attendance, salary)
+
+	fmt.Printf("%+v \n", salary)
 	if err != nil {
 		return err
 	}

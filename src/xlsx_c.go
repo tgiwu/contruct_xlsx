@@ -147,7 +147,7 @@ func constructSalarySheet(excel *excelize.File, sheetName string, salary map[str
 	overviewArr = append(overviewArr, overview)
 
 	fillTitle(excel, sheetName, getTitle(sheetName, mConf.Month, mConf.Year))
-	fillHeader(excel, sheetName, mConf.Headers)
+	fillHeader(excel, sheetName, mConf.HeadersRisk)
 	fillRow(excel, sheetName, sortSalaryById(salary))
 	fillTotal(excel, sheetName, len(salary)+2, total)
 
@@ -191,9 +191,9 @@ func calcTotal(salary *map[string]Salary, list *[]Salary, total *Salary, overvie
 }
 
 func fillTitle(excel *excelize.File, sheetName string, title string) {
-	excel.MergeCell(sheetName, pos(0, 0), pos(0, len(mConf.Headers)-1))
+	excel.MergeCell(sheetName, pos(0, 0), pos(0, len(mConf.HeadersRisk)-1))
 	excel.SetCellValue(sheetName, pos(0, 0), title)
-	excel.SetCellStyle(sheetName, pos(0, 0), pos(0, len(mConf.Headers)-1), cellStyle(excel, TYPE_ROW_TITLE))
+	excel.SetCellStyle(sheetName, pos(0, 0), pos(0, len(mConf.HeadersRisk)-1), cellStyle(excel, TYPE_ROW_TITLE))
 }
 
 func fillHeader(excel *excelize.File, sheetName string, headers []string) {
@@ -227,10 +227,10 @@ func fillHeader(excel *excelize.File, sheetName string, headers []string) {
 func fillRow(excel *excelize.File, sheetName string, salaries []Salary) {
 	var errCells = make(map[string]string, 0)
 	for i, salary := range salaries {
-		for j, s := range mConf.Headers {
+		for j, s := range mConf.HeadersRisk {
 			v := reflect.ValueOf(salary)
 			if v.Kind() == reflect.Struct {
-				value := v.FieldByName(mConf.HeadersMap[s])
+				value := v.FieldByName(mConf.HeadersRiskMap[s])
 
 				kind := value.Kind()
 				switch kind {
@@ -277,12 +277,24 @@ func fillTotal(excel *excelize.File, sheetName string, row int, total Salary) {
 
 	excel.SetCellFormula(sheetName, pos(row, 4), total.totalStandard)
 	excel.SetCellFormula(sheetName, pos(row, 5), total.totalNetPay)
-	excel.SetCellStyle(sheetName, pos(row, 4), pos(row, len(mConf.Headers)-3), cellStyle(excel, TYPE_ROW_NORMAL))
 
-	excel.SetCellFormula(sheetName, pos(row, len(mConf.Headers)-2), total.totalAccount)
-	excel.SetCellStyle(sheetName, pos(row, len(mConf.Headers)-2), pos(row, len(mConf.Headers)-2), cellStyle(excel, TYPE_ROW_TOTAL))
+	indexOfTotal := -1
+	for index,name := range mConf.HeadersRisk {
+		if name == "合计" {
+			indexOfTotal = index
+		}
+	}
 
-	excel.SetCellStyle(sheetName, pos(row, len(mConf.Headers)-1), pos(row, len(mConf.Headers)-1), cellStyle(excel, TYPE_ROW_TOTAL))
+	if indexOfTotal == -1 {
+		panic("can not locate column total!")
+	}
+
+	excel.SetCellStyle(sheetName, pos(row, 4), pos(row, indexOfTotal), cellStyle(excel, TYPE_ROW_NORMAL))
+
+	excel.SetCellFormula(sheetName, pos(row, indexOfTotal), total.totalAccount)
+	excel.SetCellStyle(sheetName, pos(row, indexOfTotal), pos(row, indexOfTotal), cellStyle(excel, TYPE_ROW_TOTAL))
+	//set style for columns behind total 
+	excel.SetCellStyle(sheetName, pos(row, indexOfTotal+1), pos(row, len(mConf.HeadersRisk)-1), cellStyle(excel, TYPE_ROW_TOTAL))
 }
 
 type stylePar struct {

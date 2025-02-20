@@ -30,6 +30,7 @@ const COL_SP_SALARY_PER_MONTH = "月薪"
 const COL_SP_DESCRIPTION = "说明"
 
 const SHEET_NAME_RISK = "临时劳务用工人员"
+const SHEET_NAME_NO_RISK = "无风险人员"
 
 const FINISH_SIGNAL_STAFF = "staff finish!!"
 const FINISH_SIGNAL_SALARY_STANDARDS_TEMP = "salary standards finish!!"
@@ -234,14 +235,13 @@ func readStaff(sheet *xlsx.Sheet, staffChan chan Staff, finishChan chan string) 
 		//代发人员计入范崎路
 		case "代发工资":
 			staff.Calc = CalcFQ
-			staff.Area = "范崎路"
 		case "外派":
 			staff.Calc = CalcWP
 		default:
 			staff.Calc = CalcCommon
 		}
 
-		fmt.Printf("%+v\n", staff)
+		// fmt.Printf("%+v\n", staff)
 		staffChan <- staff
 	}
 
@@ -306,7 +306,7 @@ func visitRow(row *xlsx.Row, headerMap *map[int]string, staff *Staff) {
 				(*headerMap)[i] = "Area"
 			case COL_STAFF_IDCARD:
 				(*headerMap)[i] = "IdCard"
-			case COL_STAFF_IGNORE_RISK: 
+			case COL_STAFF_IGNORE_RISK:
 				(*headerMap)[i] = "RiskIgnore"
 			}
 		} else {
@@ -344,7 +344,7 @@ func visitRow(row *xlsx.Row, headerMap *map[int]string, staff *Staff) {
 
 	if len(staff.IdCard) == 18 {
 		ageAndSex(staff)
-		fmt.Printf("%+v \n", staff)
+		// fmt.Printf("%+v \n", staff)
 	}
 }
 

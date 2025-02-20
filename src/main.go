@@ -77,14 +77,16 @@ func main() {
 	if err != nil {
 		panic("build salary map failed " + err.Error())
 	}
-	constructSalaryXlsx(salaryMap, "")
+	//salary excel
+	// constructSalaryXlsx(salaryMap, "")
 	s := strings.Split(mConf.FileName, ".")
 	constructSalaryXlsx(salaryRiskMap, fmt.Sprintf("%s_风险人员.%s", s[0], s[1]))
 
+	//transfer information for no risk
 	transferInfos := new([]TransferInfo)
 	buildTransferInfo(salaryRiskMap, staffMap, transferInfos)
 	constructTransferInfoXlsx(transferInfos, "")
-	
+
 	fmt.Println("finish")
 }
 
