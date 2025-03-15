@@ -342,9 +342,15 @@ func visitRow(row *xlsx.Row, headerMap *map[int]string, staff *Staff) {
 		}
 	}
 
+	//remove space ahead and tail
+	if len(staff.IdCard) > 18 {
+		staff.IdCard = strings.Trim(staff.IdCard, " ")
+	}
+
 	if len(staff.IdCard) == 18 {
 		ageAndSex(staff)
-		// fmt.Printf("%+v \n", staff)
+	} else {
+		fmt.Printf("非法的身份证号 %+v \n", staff)
 	}
 }
 
