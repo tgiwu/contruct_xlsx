@@ -312,7 +312,6 @@ func CalcWP(staff *Staff, attendance *Attendance, salary *Salary) error {
 
 	err = calcAfter(staff, attendance, salary)
 
-	fmt.Printf("%+v \n", salary)
 	if err != nil {
 		return err
 	}
