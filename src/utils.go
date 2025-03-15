@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 )
@@ -171,4 +172,24 @@ func pos(row int, col int) string {
 	}
 
 	return fmt.Sprintf("%s%d", string(byte(first+col)), row+1)
+}
+
+func DeepCopy(src, dst interface{}) {
+	srcVal := reflect.ValueOf(src).Elem()
+	dstVal := reflect.ValueOf(dst).Elem()
+
+	for i := 0; i < srcVal.NumField(); i++ {
+		fieldVal := srcVal.Field(i)
+		if fieldVal.Kind() == reflect.Ptr {
+			if fieldVal.IsNil() {
+				continue
+			}
+
+			newPtr := reflect.New(fieldVal.Type().Elem()).Elem()
+			newPtr.Set(fieldVal.Elem())
+			dstVal.Field(i).Set(newPtr.Addr())
+		} else {
+			dstVal.Field(i).Set(fieldVal)
+		}
+	}
 }

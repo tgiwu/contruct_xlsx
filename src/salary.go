@@ -19,7 +19,7 @@ type Salary struct {
 	Account        int    //合计（不再用于展示）
 	AccountFormula string //合计公式
 	BackUp         string //备注
-	Postion        string //区域，用于分组
+	Area           string //区域，用于分组
 	SalaryTotal           //合计行
 	//todo: 写入表之前不能确定具体位置，暂时只能绑定列名
 	ErrorMap map[string]string //错误批注，如有错误单元格标红并添加批注;key:列名；value：错误描述
@@ -37,13 +37,15 @@ type Overview struct {
 	AccountTotal int    //总计费用
 	BackUp       string //特殊说明
 }
-//临勤工资标准
+
+// 临勤工资标准
 type SalaryStandardsTemp struct {
 	TempType     string //临勤类型
 	SalaryPerDay int    //日薪
 	Description  string //说明
 }
-//借调工资标准
+
+// 借调工资标准
 type SalaryStandardsPost struct {
 	PostType       string //岗位类型
 	SalaryPerMonth int    //月薪
@@ -52,6 +54,8 @@ type SalaryStandardsPost struct {
 
 // 根据字数定制备注列宽度
 var maxLenForBackupMap map[string]int
+
+var salaryNextIdMap = make(map[string]int, 0)
 
 // 工资计算错误，定义负值，便于在excel中标记
 const ERROR_SALARY = -99999
@@ -64,28 +68,22 @@ func (sbe SalaryBuildError) Error() string {
 	return sbe.msg
 }
 
-func buildSalaries(staffs map[string]map[string]Staff, attendances map[string]map[string]Attendance,
-	salaryMap *map[string]map[string]Salary) error {
+func buildSalaries(staffs map[string]Staff, attendances map[string]map[string]Attendance,
+	salaryMap *map[string]map[string]Salary, salaryRiskMap *map[string]map[string]Salary) error {
 
-	for area, atts := range attendances {
-		staffMap, found := staffs[area]
-		if !found {
-			return SalaryBuildError{msg: fmt.Sprintf("Can not find area %s in staffs!!", area)}
-		}
-
-	label:
+	for _, atts := range attendances {
 		for name, attendance := range atts {
 
 			if len(mConf.Ignore) != 0 {
 				for _, ignore := range mConf.Ignore {
 					if ignore == name {
 						//ignore
-						continue label
+						continue
 					}
 				}
 			}
+			staff, found := staffs[attendance.Name]
 
-			staff, found := staffMap[name]
 			if !found {
 				fmt.Printf("staff %+v", staffMap)
 				return SalaryBuildError{msg: fmt.Sprintf("Can not find staff named %s in staffs!!", name)}
@@ -94,6 +92,7 @@ func buildSalaries(staffs map[string]map[string]Staff, attendances map[string]ma
 			salary := new(Salary)
 			err := staff.Calc(&staff, &attendance, salary)
 
+			//do not differential risk
 			if err != nil {
 				fmt.Println("build Salary item FAILED ", err.Error())
 			} else {
@@ -105,6 +104,52 @@ func buildSalaries(staffs map[string]map[string]Staff, attendances map[string]ma
 				items[name] = *salary
 
 				(*salaryMap)[attendance.Postion] = items
+			}
+
+			sumStart, sumEnd, deduction := 0, 0, 0
+			for i, s := range mConf.Headers {
+				switch s {
+				case "实发工资":
+					sumStart = i
+				case "特殊费用":
+					sumEnd = i
+				case "扣款":
+					deduction = i
+				}
+			}
+
+			salaryCopy := new(Salary)
+			DeepCopy(salary, salaryCopy)
+			//differential risk
+			if !staff.RiskIgnore && ((staff.Age < 60 && staff.Sex == 1) || (staff.Age < 50 && staff.Sex == 0)) {
+				items, found := (*salaryRiskMap)[SHEET_NAME_RISK]
+				if !found {
+					items = make(map[string]Salary, 0)
+					salaryNextIdMap[SHEET_NAME_RISK] = 1
+				}
+				salaryCopy.Id = salaryNextIdMap[SHEET_NAME_RISK]
+				//recalc account formula
+				salaryCopy.AccountFormula = fmt.Sprintf("=SUM(%s:%s) - %s", pos(salaryCopy.Id+1, sumStart),
+					pos(salaryCopy.Id+1, sumEnd), pos(salaryCopy.Id+1, deduction))
+				items[name] = *salaryCopy
+
+				(*salaryRiskMap)[SHEET_NAME_RISK] = items
+				salaryNextIdMap[SHEET_NAME_RISK]++
+			} else {
+				items, found := (*salaryRiskMap)[SHEET_NAME_NO_RISK]
+				if !found {
+					items = make(map[string]Salary, 0)
+					salaryNextIdMap[SHEET_NAME_NO_RISK] = 1
+				}
+				salaryCopy.Id = salaryNextIdMap[SHEET_NAME_NO_RISK]
+				//recalc account formula
+				salaryCopy.AccountFormula = fmt.Sprintf("=SUM(%s:%s) - %s", pos(salaryCopy.Id+1, sumStart),
+					pos(salaryCopy.Id+1, sumEnd), pos(salaryCopy.Id+1, deduction))
+
+				items[name] = *salaryCopy
+
+				(*salaryRiskMap)[SHEET_NAME_NO_RISK] = items
+				salaryNextIdMap[SHEET_NAME_NO_RISK]++
 			}
 		}
 	}
@@ -193,7 +238,7 @@ func calcAfter(staff *Staff, attendance *Attendance, salary *Salary) error {
 	}
 
 	salary.AccountFormula = fmt.Sprintf("=SUM(%s:%s) - %s", pos(salary.Id+1, sumStart), pos(salary.Id+1, sumEnd), pos(salary.Id+1, deduction))
-	salary.Postion = staff.Area
+	salary.Area = staff.Area
 	salary.BackUp = attendance.Backup
 
 	if length, found := maxLenForBackupMap[staff.Area]; found {
@@ -259,13 +304,14 @@ func CalcWP(staff *Staff, attendance *Attendance, salary *Salary) error {
 			salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
 		}
 
-		//法定节假日三倍工资,三倍以北京市最低工资2420计算，每月平均工作天数21.75天
-		salary.OvertimePay += int(float64(attendance.Temp_12) * (float64(2420) / float64(21.75)) * 3)
+		//法定节假日三倍工资,每天基本工资80，3倍240
+		salary.OvertimePay += int(attendance.Temp_12 * ssMap["Temp_Guard_Holiday"])
 		//值班每天 60
-		salary.OvertimePay += attendance.Temp_4 * ssMap["Temp_Guard"]
+		salary.OvertimePay += attendance.Temp_Guard * ssMap["Temp_Guard"]
 	}
 
 	err = calcAfter(staff, attendance, salary)
+
 	if err != nil {
 		return err
 	}

@@ -86,7 +86,7 @@ func visitorRow(row *xlsx.Row, attendance *Attendance, headerMap *map[int]string
 				(*headerMap)[i] = "Temp_12"
 			case "临勤（4）":
 				(*headerMap)[i] = "Temp_4"
-			case "值班":
+			case "外派值班":
 				(*headerMap)[i] = "Temp_Guard"
 			case "病假":
 				(*headerMap)[i] = "Sickness"
@@ -100,6 +100,10 @@ func visitorRow(row *xlsx.Row, attendance *Attendance, headerMap *map[int]string
 				(*headerMap)[i] = "Backup"
 			case "扣款":
 				(*headerMap)[i] = "Deduction"
+			case "法定节假日加班":
+				(*headerMap)[i] = "Temp_12"
+			case "保洁固定岗加班":
+				(*headerMap)[i] = "Temp_4"
 			}
 		} else {
 			val, _ := strconv.Atoi(str)

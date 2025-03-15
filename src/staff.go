@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/tealeg/xlsx/v3"
 )
@@ -17,6 +18,8 @@ const COL_STAFF_ACCOUNT_NAME = "代收人姓名"
 const COL_STAFF_ACCOUNT = "收款账号"
 const COL_STAFF_BACKUP = "备注"
 const COL_STAFF_AREA = "区域"
+const COL_STAFF_IDCARD = "身份证号"
+const COL_STAFF_IGNORE_RISK = "忽略风险"
 
 const COL_SS_TYPE = "类型"
 const COL_SS_SALARY_PER_DAY = "日薪"
@@ -26,26 +29,31 @@ const COL_SP_TYPE = "类型"
 const COL_SP_SALARY_PER_MONTH = "月薪"
 const COL_SP_DESCRIPTION = "说明"
 
+const SHEET_NAME_RISK = "临时劳务用工人员"
+const SHEET_NAME_NO_RISK = "无风险人员"
+
 const FINISH_SIGNAL_STAFF = "staff finish!!"
 const FINISH_SIGNAL_SALARY_STANDARDS_TEMP = "salary standards finish!!"
 const FINISH_SIGNAL_SALARY_STANDARDS_POST = "salary standards post finish"
 
 type Staff struct {
-	Name     string      //姓名
-	Salary   int         //工资
-	Account  string      //收款账号
-	ToName   string      //收款人姓名
-	Area     string      //区域
-	QuitTime string      //离职时间
-	BackUp   BackUpStaff //备注
-	Calc     Calc        //工资计算方式
-	Sal      *Salary     //工资计算结果
-	Att      *Attendance //考勤
+	Name       string      //姓名
+	Salary     int         //工资
+	Account    string      //收款账号
+	ToName     string      //收款人姓名
+	Area       string      //区域
+	QuitTime   string      //离职时间
+	BackUp     BackUpStaff //备注
+	IdCard     string      //身份证号
+	Age        int         //年龄
+	Sex        int         //1:男，0：女
+	Calc       Calc        //工资计算方式
+	Sal        *Salary     //工资计算结果
+	Att        *Attendance //考勤
+	RiskIgnore bool        //忽略风险处理
 }
 
 type Calc func(staff *Staff, attendance *Attendance, salary *Salary) error
-
-
 
 type BackUpStaff struct {
 	BackUpSal []BackUpStaffSalary `json:"salary"`
@@ -56,7 +64,7 @@ type BackUpStaffSalary struct {
 	Sal   int   `json:"sal"`
 }
 
-//读取临勤工资标准
+// 读取临勤工资标准
 func readSalaryStandardTemp(sheet *xlsx.Sheet, ssChan chan SalaryStandardsTemp, finishChan chan string) error {
 
 	headerMap := make(map[int]string)
@@ -86,7 +94,7 @@ func readSalaryStandardTemp(sheet *xlsx.Sheet, ssChan chan SalaryStandardsTemp, 
 	return nil
 }
 
-//读取借调工资标准
+// 读取借调工资标准
 func readSalaryStandardPost(sheet *xlsx.Sheet, spChan chan SalaryStandardsPost, finishChan chan string) error {
 
 	headerMap := make(map[int]string)
@@ -116,7 +124,7 @@ func readSalaryStandardPost(sheet *xlsx.Sheet, spChan chan SalaryStandardsPost, 
 	return nil
 }
 
-//单行临勤工资标准
+// 单行临勤工资标准
 func visitRowSS(row *xlsx.Row, headerMap *map[int]string, ss *SalaryStandardsTemp) error {
 	isReadHeader := len(*headerMap) == 0
 
@@ -159,7 +167,7 @@ func visitRowSS(row *xlsx.Row, headerMap *map[int]string, ss *SalaryStandardsTem
 	return nil
 }
 
-//单行借调工资标准
+// 单行借调工资标准
 func visitRowSP(row *xlsx.Row, headerMap *map[int]string, sp *SalaryStandardsPost) error {
 	isReadHeader := len(*headerMap) == 0
 
@@ -202,7 +210,7 @@ func visitRowSP(row *xlsx.Row, headerMap *map[int]string, sp *SalaryStandardsPos
 	return nil
 }
 
-//员工信息
+// 员工信息
 func readStaff(sheet *xlsx.Sheet, staffChan chan Staff, finishChan chan string) error {
 	headerMap := make(map[int]string)
 
@@ -227,13 +235,13 @@ func readStaff(sheet *xlsx.Sheet, staffChan chan Staff, finishChan chan string) 
 		//代发人员计入范崎路
 		case "代发工资":
 			staff.Calc = CalcFQ
-			staff.Area = "范崎路"
 		case "外派":
 			staff.Calc = CalcWP
 		default:
 			staff.Calc = CalcCommon
 		}
 
+		// fmt.Printf("%+v\n", staff)
 		staffChan <- staff
 	}
 
@@ -241,7 +249,8 @@ func readStaff(sheet *xlsx.Sheet, staffChan chan Staff, finishChan chan string) 
 
 	return nil
 }
-//读取员工、岗位信息
+
+// 读取员工、岗位信息
 func readData(staffChan chan Staff, ssChan chan SalaryStandardsTemp, spChan chan SalaryStandardsPost, finishChan chan string) error {
 	file, err := xlsx.OpenFile(mConf.StaffFilePath)
 	if err != nil {
@@ -269,7 +278,7 @@ func readData(staffChan chan Staff, ssChan chan SalaryStandardsTemp, spChan chan
 	return nil
 }
 
-//单行员工信息
+// 单行员工信息
 func visitRow(row *xlsx.Row, headerMap *map[int]string, staff *Staff) {
 	isReadHeader := len(*headerMap) == 0
 
@@ -295,6 +304,10 @@ func visitRow(row *xlsx.Row, headerMap *map[int]string, staff *Staff) {
 				(*headerMap)[i] = "BackUp"
 			case COL_STAFF_AREA:
 				(*headerMap)[i] = "Area"
+			case COL_STAFF_IDCARD:
+				(*headerMap)[i] = "IdCard"
+			case COL_STAFF_IGNORE_RISK:
+				(*headerMap)[i] = "RiskIgnore"
 			}
 		} else {
 			val, _ := strconv.Atoi(str)
@@ -303,9 +316,15 @@ func visitRow(row *xlsx.Row, headerMap *map[int]string, staff *Staff) {
 				panic("not struct")
 			}
 
+			if (*headerMap)[i] == "RiskIgnore" {
+				staff.RiskIgnore = len(str) != 0
+				continue
+			}
+
 			if fieldObj, ok := refType.FieldByName((*headerMap)[i]); ok {
 
-				if (*headerMap)[i] == "BackUp" && strings.Index(str, "json:") == 0 {
+				switch {
+				case (*headerMap)[i] == "BackUp" && strings.Index(str, "json:") == 0:
 					str = str[len("json:"):]
 					var backupStaff BackUpStaff
 					err := json.Unmarshal([]byte(str), &backupStaff)
@@ -314,17 +333,40 @@ func visitRow(row *xlsx.Row, headerMap *map[int]string, staff *Staff) {
 					} else {
 						staff.BackUp = backupStaff
 					}
-					continue
-				}
-
-				if fieldObj.Type.Kind() == reflect.Int {
+				case fieldObj.Type.Kind() == reflect.Int:
 					reflect.ValueOf(staff).Elem().FieldByName((*headerMap)[i]).SetInt(int64(val))
-
-				}
-				if fieldObj.Type.Kind() == reflect.String {
+				case fieldObj.Type.Kind() == reflect.String:
 					reflect.ValueOf(staff).Elem().FieldByName((*headerMap)[i]).SetString(str)
 				}
 			}
 		}
 	}
+
+	if len(staff.IdCard) == 18 {
+		ageAndSex(staff)
+		// fmt.Printf("%+v \n", staff)
+	}
+}
+
+func ageAndSex(staff *Staff) {
+	year, _ := strconv.Atoi(string(staff.IdCard[6:10]))
+	month, _ := strconv.Atoi(string(staff.IdCard[10:12]))
+	day, _ := strconv.Atoi(string(staff.IdCard[12:14]))
+	sexNum, _ := strconv.Atoi(string(staff.IdCard[16]))
+
+	staff.Sex = sexNum % 2
+
+	// birthdayMill := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
+
+	current := time.Now()
+
+	age := current.Year() - year
+	moreMonth := int(current.Month()) - month
+	moreDay := current.Day() - day
+
+	if moreMonth < 0 || (moreMonth == 0 && moreDay < 0) {
+		age--
+	}
+
+	staff.Age = age
 }
