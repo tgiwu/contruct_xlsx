@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -68,15 +69,40 @@ func (sbe SalaryBuildError) Error() string {
 	return sbe.msg
 }
 
-func buildSalaries(staffs map[string]Staff, attendances map[string]map[string]Attendance,
+func buildSalaries(staffs map[string]Staff, attendances map[string][]Attendance,
 	salaryMap *map[string]map[string]Salary, salaryRiskMap *map[string]map[string]Salary) error {
 
-	for _, atts := range attendances {
-		for name, attendance := range atts {
+	keys := make([]string, 0, len(attendances))
+	for k := range attendances {
+		keys = append(keys, k)
+	}
+
+	if len(mConf.AreaSortArray) > 0 {
+		areaIndexMap := make(map[string]int, len(mConf.AreaSortArray))
+		for i, area := range mConf.AreaSortArray {
+			areaIndexMap[area] = i
+		}
+
+		slices.SortFunc(keys, func(x string, y string) int {
+			xi, yi := -1, -1
+
+			if i, found := areaIndexMap[x]; found {
+				xi = i
+			}
+
+			if i, found := areaIndexMap[y]; found {
+				yi = i
+			}
+			return xi - yi
+		})
+	}
+	for _, key := range keys {
+
+		for _, attendance := range attendances[key] {
 
 			if len(mConf.Ignore) != 0 {
 				for _, ignore := range mConf.Ignore {
-					if ignore == name {
+					if ignore == attendance.Name {
 						//ignore
 						continue
 					}
@@ -86,7 +112,7 @@ func buildSalaries(staffs map[string]Staff, attendances map[string]map[string]At
 
 			if !found {
 				fmt.Printf("staff %+v", staffMap)
-				return SalaryBuildError{msg: fmt.Sprintf("Can not find staff named %s in staffs!!", name)}
+				return SalaryBuildError{msg: fmt.Sprintf("Can not find staff named %s in staffs!!", attendance.Name)}
 			}
 
 			salary := new(Salary)
@@ -101,7 +127,7 @@ func buildSalaries(staffs map[string]Staff, attendances map[string]map[string]At
 					items = make(map[string]Salary, 0)
 				}
 
-				items[name] = *salary
+				items[attendance.Name] = *salary
 
 				(*salaryMap)[attendance.Postion] = items
 			}
@@ -131,7 +157,7 @@ func buildSalaries(staffs map[string]Staff, attendances map[string]map[string]At
 				//recalc account formula
 				salaryCopy.AccountFormula = fmt.Sprintf("=SUM(%s:%s) - %s", pos(salaryCopy.Id+1, sumStart),
 					pos(salaryCopy.Id+1, sumEnd), pos(salaryCopy.Id+1, deduction))
-				items[name] = *salaryCopy
+				items[attendance.Name] = *salaryCopy
 
 				(*salaryRiskMap)[SHEET_NAME_RISK] = items
 				salaryNextIdMap[SHEET_NAME_RISK]++
@@ -146,7 +172,7 @@ func buildSalaries(staffs map[string]Staff, attendances map[string]map[string]At
 				salaryCopy.AccountFormula = fmt.Sprintf("=SUM(%s:%s) - %s", pos(salaryCopy.Id+1, sumStart),
 					pos(salaryCopy.Id+1, sumEnd), pos(salaryCopy.Id+1, deduction))
 
-				items[name] = *salaryCopy
+				items[attendance.Name] = *salaryCopy
 
 				(*salaryRiskMap)[SHEET_NAME_NO_RISK] = items
 				salaryNextIdMap[SHEET_NAME_NO_RISK]++
@@ -307,7 +333,7 @@ func CalcWP(staff *Staff, attendance *Attendance, salary *Salary) error {
 		//法定节假日三倍工资,每天基本工资80，3倍240
 		salary.OvertimePay += int(attendance.Temp_12 * ssMap["Temp_Guard_Holiday"])
 		//值班每天 60
-		salary.OvertimePay += attendance.Temp_Guard * ssMap["Temp_Guard"]
+		salary.OvertimePay += attendance.Temp_4 * ssMap["Temp_Guard"]
 	}
 
 	err = calcAfter(staff, attendance, salary)

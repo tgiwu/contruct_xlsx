@@ -62,11 +62,21 @@ func constructSalaryXlsx(salaryMap map[string]map[string]Salary, fileName string
 
 	if len(fileName) == 0 {
 		delFileIfExist(mConf.OutputPath, mConf.FileName)
-		excel.SaveAs(filepath.Join(mConf.OutputPath, mConf.FileName))
+		err := excel.SaveAs(filepath.Join(mConf.OutputPath, mConf.FileName))
+		fmt.Println(filepath.Join(mConf.OutputPath, fileName))
+
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		delFileIfExist(mConf.OutputPath, fileName)
-		excel.SaveAs(filepath.Join(mConf.OutputPath, fileName))
+		err := excel.SaveAs(filepath.Join(mConf.OutputPath, fileName))
+		fmt.Println(filepath.Join(mConf.OutputPath, fileName))
+		if err != nil {
+			panic(err)
+		}
 	}
+
 	fmt.Printf("construct xlsx %s end\n", fileName)
 	return nil
 }
@@ -279,7 +289,7 @@ func fillTotal(excel *excelize.File, sheetName string, row int, total Salary) {
 	excel.SetCellFormula(sheetName, pos(row, 5), total.totalNetPay)
 
 	indexOfTotal := -1
-	for index,name := range mConf.HeadersRisk {
+	for index, name := range mConf.HeadersRisk {
 		if name == "合计" {
 			indexOfTotal = index
 		}
@@ -293,7 +303,7 @@ func fillTotal(excel *excelize.File, sheetName string, row int, total Salary) {
 
 	excel.SetCellFormula(sheetName, pos(row, indexOfTotal), total.totalAccount)
 	excel.SetCellStyle(sheetName, pos(row, indexOfTotal), pos(row, indexOfTotal), cellStyle(excel, TYPE_ROW_TOTAL))
-	//set style for columns behind total 
+	//set style for columns behind total
 	excel.SetCellStyle(sheetName, pos(row, indexOfTotal+1), pos(row, len(mConf.HeadersRisk)-1), cellStyle(excel, TYPE_ROW_TOTAL))
 }
 

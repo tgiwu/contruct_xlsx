@@ -30,10 +30,11 @@ type config struct {
 	SalaryPurpose                string   `mapstructure:"salary_purpose"`
 	OverviewHeader               []string `mapstructure:"overview_header"`
 	OverviewHeaderMap            map[string]string
-	SheetNameStaff               string `mapstructure:"staff_sheet_name"`
-	SheetNameSalaryStandardsTemp string `mapstructure:"salary_standards_temp_sheet_name"`
-	SheetNameSalaryStandardsPost string `mapstructure:"salary_standards_post_sheet_name"`
-	ConstructTransferFile        bool   `mapstructure:"construct_transfer_file"`
+	SheetNameStaff               string   `mapstructure:"staff_sheet_name"`
+	SheetNameSalaryStandardsTemp string   `mapstructure:"salary_standards_temp_sheet_name"`
+	SheetNameSalaryStandardsPost string   `mapstructure:"salary_standards_post_sheet_name"`
+	ConstructTransferFile        bool     `mapstructure:"construct_transfer_file"`
+	AreaSortArray                []string `mapstructure:"area_sort_array"`
 }
 
 var mConf config

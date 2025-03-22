@@ -7,7 +7,7 @@ output_path: "../output"
 ignore: ["雷晓利"]
 file_name: "salary.xlsx"
 year: 2025
-month: 1
+month: 2
 headers: ["序号","姓名","应出勤","实际出勤","应发工资","实发工资","加班工资","特殊费用","扣款","合计","备注"]
 headers_risk: ["序号","姓名","应出勤","实际出勤","应发工资","实发工资","加班工资","特殊费用","扣款","合计","区域","备注"]
 overview_header: ["序号","区域","发放人数", "总计费用", "备注"]
@@ -16,3 +16,4 @@ salary_standards_temp_sheet_name: "临勤工资标准"
 salary_standards_post_sheet_name: "岗位工资标准"
 construct_transfer_file: true
 salary_purpose: "工资"
+area_sort_array: ["大医院","中医院","慕田峪","范崎路","代发工资","鸟岛","外派"]

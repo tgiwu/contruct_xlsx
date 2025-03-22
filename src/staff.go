@@ -324,6 +324,7 @@ func visitRow(row *xlsx.Row, headerMap *map[int]string, staff *Staff) {
 			if fieldObj, ok := refType.FieldByName((*headerMap)[i]); ok {
 
 				switch {
+				//if josn in backup,it's salary calculation
 				case (*headerMap)[i] == "BackUp" && strings.Index(str, "json:") == 0:
 					str = str[len("json:"):]
 					var backupStaff BackUpStaff

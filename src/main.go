@@ -9,7 +9,7 @@ import (
 )
 
 // area to (name to attendance)
-var attMap = make(map[string]map[string]Attendance)
+var attMap = make(map[string][]Attendance)
 
 // name to staff
 var staffMap = make(map[string]Staff)
@@ -78,9 +78,10 @@ func main() {
 		panic("build salary map failed " + err.Error())
 	}
 	//salary excel
-	// constructSalaryXlsx(salaryMap, "")
 	s := strings.Split(mConf.FileName, ".")
 	constructSalaryXlsx(salaryRiskMap, fmt.Sprintf("%s_风险人员.%s", s[0], s[1]))
+
+	constructSalaryXlsx(salaryMap, mConf.FileName)
 
 	//transfer information for no risk
 	transferInfos := new([]TransferInfo)
@@ -96,10 +97,10 @@ func handleChan(attChan chan Attendance, finishChan chan string, staffChan chan 
 		case att := <-attChan:
 			attendances, found := attMap[att.Postion]
 			if !found {
-				attendances = make(map[string]Attendance, 0)
+				attendances = make([]Attendance, 0)
 			}
 
-			attendances[att.Name] = att
+			attendances = append(attendances, att)
 			attMap[att.Postion] = attendances
 		case staff := <-staffChan:
 			staffMap[staff.Name] = staff
