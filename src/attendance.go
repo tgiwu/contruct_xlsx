@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"reflect"
 	"strconv"
 
@@ -31,11 +30,11 @@ func readFormXlsxAttendance(path string, c chan Attendance, finishC chan string)
 		return
 	}
 
-	fmt.Println("sheet len: ", len(file.Sheets))
+	// fmt.Println("sheet len: ", len(file.Sheets))
 
 	for _, sheet := range file.Sheets {
 		var headerMap = map[int]string{}
-		fmt.Printf("mix row %d, col %d\n", sheet.MaxRow, sheet.MaxCol)
+		// fmt.Printf("mix row %d, col %d\n", sheet.MaxRow, sheet.MaxCol)
 		for index := range sheet.MaxRow {
 			attendance := Attendance{Id: -1}
 			row, err := sheet.Row(index)

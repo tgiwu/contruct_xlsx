@@ -26,8 +26,6 @@ var ssMap = make(map[string]int)
 // post
 var spMap = make(map[string]int)
 
-var wg sync.WaitGroup
-
 func main() {
 
 	readConfig()
@@ -53,13 +51,16 @@ func main() {
 	var ssChan = make(chan SalaryStandardsTemp)
 	var spChan = make(chan SalaryStandardsPost)
 
-	lockCount := len(*filePaths)          //attendance
-	lockCount += 1                        //staff
-	lockCount += 1                        //salaryStandardsTemp
-	lockCount += 1                        //salaryStandardsPost
-	fmt.Println("lock count ", lockCount) //handle
-	wg.Add(lockCount)
+	lockCount := len(*filePaths) //attendance
+	lockCount += 1               //staff
+	lockCount += 1               //salaryStandardsTemp
+	lockCount += 1               //salaryStandardsPost
+	// fmt.Println("lock count ", lockCount) //handle
 
+	var wg sync.WaitGroup
+
+	wg.Add(lockCount)
+	//start read handler
 	go handleChan(attChan, finishChan, staffChan, ssChan, spChan, &wg, lockCount)
 
 	for _, path := range *filePaths {
@@ -70,25 +71,45 @@ func main() {
 
 	wg.Wait()
 
-	fmt.Println("read all finish ~~~~~")
+	fmt.Println("--------------------read finish--------------------")
 
 	err = buildSalaries(staffMap, attMap, &salaryMap, &salaryRiskMap)
 
 	if err != nil {
 		panic("build salary map failed " + err.Error())
 	}
+
 	//salary excel
-	s := strings.Split(mConf.FileName, ".")
-	constructSalaryXlsx(salaryRiskMap, fmt.Sprintf("%s_风险人员.%s", s[0], s[1]))
+	var xlsxWG sync.WaitGroup
+	xlsxC := make(chan string)
 
-	constructSalaryXlsx(salaryMap, mConf.FileName)
+	xlsxCount := 0
+	xlsxCount += 1 //salsry separate by area
+	xlsxCount += 1 //salary separate by risk
+	xlsxCount += 1 //transfer info for no risk
 
-	//transfer information for no risk
-	transferInfos := new([]TransferInfo)
-	buildTransferInfo(salaryRiskMap, staffMap, transferInfos)
-	constructTransferInfoXlsx(transferInfos, "")
+	//start xlsx construction handler
+	go handleXLSXSignal(xlsxC, &xlsxWG, xlsxCount)
+	xlsxWG.Add(xlsxCount)
+	//construct salary xlsx normal
 
-	fmt.Println("finish")
+	go constructSalaryXlsx(salaryMap, mConf.FileName, xlsxC)
+
+	//construct salary xlsx separate by risk
+	go func() {
+		s := strings.Split(mConf.FileName, ".")
+		constructSalaryXlsx(salaryRiskMap, fmt.Sprintf("%s_风险人员.%s", s[0], s[1]), xlsxC)
+	}()
+
+	//construct transfer information xlsx for no risk
+	go func() {
+		transferInfos := new([]TransferInfo)
+		buildTransferInfo(salaryRiskMap, staffMap, transferInfos)
+		constructTransferInfoXlsx(transferInfos, mConf.FileTransferName, xlsxC)
+	}()
+	xlsxWG.Wait()
+
+	fmt.Println("all finish")
 }
 
 func handleChan(attChan chan Attendance, finishChan chan string, staffChan chan Staff, ssChan chan SalaryStandardsTemp, spChan chan SalaryStandardsPost, wg *sync.WaitGroup, count int) {
@@ -117,6 +138,19 @@ func handleChan(attChan chan Attendance, finishChan chan string, staffChan chan 
 			if count == 0 {
 				return
 			}
+		}
+	}
+}
+
+func handleXLSXSignal(c chan string, xlsxWg *sync.WaitGroup, count int) {
+
+	for {
+		s := <-c
+		fmt.Println(s)
+		xlsxWg.Done()
+		count--
+		if count == 0 {
+			return
 		}
 	}
 }

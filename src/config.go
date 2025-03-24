@@ -18,6 +18,7 @@ type config struct {
 	Ignore                       []string `mapstructure:"ignore"`
 	OutputPath                   string   `mapstructure:"output_path"`
 	FileName                     string   `mapstructure:"file_name"`
+	FileTransferName             string   `mapstructure:"file_transfer_name"`
 	Month                        int      `mapstructure:"month"`
 	Year                         int      `mapstructure:"year"`
 	Headers                      []string `mapstructure:"headers"`

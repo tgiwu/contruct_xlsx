@@ -6,6 +6,7 @@ staff_file_path: "/Users/yangzhang/Downloads/工作/查询表/全体员工信息
 output_path: "../output"
 ignore: ["雷晓利"]
 file_name: "salary.xlsx"
+file_transfer_name: "transfer.xlsx"
 year: 2025
 month: 2
 headers: ["序号","姓名","应出勤","实际出勤","应发工资","实发工资","加班工资","特殊费用","扣款","合计","备注"]

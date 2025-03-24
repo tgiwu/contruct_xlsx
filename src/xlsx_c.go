@@ -38,7 +38,7 @@ func (ee EmptyError) Error() string {
 }
 
 // 构建excel
-func constructSalaryXlsx(salaryMap map[string]map[string]Salary, fileName string) error {
+func constructSalaryXlsx(salaryMap map[string]map[string]Salary, fileName string, finishChan chan string) error {
 	fmt.Printf("construct xlsx %s start\n", fileName)
 	excel := excelize.NewFile()
 
@@ -60,24 +60,10 @@ func constructSalaryXlsx(salaryMap map[string]map[string]Salary, fileName string
 	//删除默认工作表
 	excel.DeleteSheet("Sheet1")
 
-	if len(fileName) == 0 {
-		delFileIfExist(mConf.OutputPath, mConf.FileName)
-		err := excel.SaveAs(filepath.Join(mConf.OutputPath, mConf.FileName))
-		fmt.Println(filepath.Join(mConf.OutputPath, fileName))
+	delFileIfExist(mConf.OutputPath, fileName)
+	excel.SaveAs(filepath.Join(mConf.OutputPath, fileName))
+	finishChan <- fmt.Sprintf("%s finish !!", fileName)
 
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		delFileIfExist(mConf.OutputPath, fileName)
-		err := excel.SaveAs(filepath.Join(mConf.OutputPath, fileName))
-		fmt.Println(filepath.Join(mConf.OutputPath, fileName))
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	fmt.Printf("construct xlsx %s end\n", fileName)
 	return nil
 }
 
@@ -400,7 +386,7 @@ func getTitle(sheetName string, month int, year int) string {
 	return fmt.Sprintf("%s%d年%d月工资", sheetName, year, month)
 }
 
-func constructTransferInfoXlsx(transferInfos *[]TransferInfo, fileName string) {
+func constructTransferInfoXlsx(transferInfos *[]TransferInfo, fileName string, finishChan chan string) {
 	excel := excelize.NewFile()
 
 	constructTransferInfoSheet(excel, "transferInfo", transferInfos)
@@ -408,13 +394,12 @@ func constructTransferInfoXlsx(transferInfos *[]TransferInfo, fileName string) {
 	//删除默认工作表
 	excel.DeleteSheet("Sheet1")
 
-	if len(fileName) == 0 {
-		delFileIfExist(mConf.OutputPath, mConf.FileName)
-		excel.SaveAs(filepath.Join(mConf.OutputPath, "transfer.xlsx"))
-	} else {
-		delFileIfExist(mConf.OutputPath, fileName)
-		excel.SaveAs(filepath.Join(mConf.OutputPath, fileName))
-	}
+	filePath := filepath.Join(mConf.OutputPath, fileName)
+		
+	delFileIfExist(mConf.OutputPath, fileName)
+	excel.SaveAs(filePath)
+	finishChan <- fmt.Sprintf("%s finish !!", fileName)
+
 }
 
 func constructTransferInfoSheet(excel *excelize.File, sheet string, transferInfos *[]TransferInfo) {
