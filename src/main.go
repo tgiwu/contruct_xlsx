@@ -91,14 +91,14 @@ func main() {
 	//start xlsx construction handler
 	go handleXLSXSignal(xlsxC, &xlsxWG, xlsxCount)
 	xlsxWG.Add(xlsxCount)
+	
 	//construct salary xlsx normal
-
-	go constructSalaryXlsx(salaryMap, mConf.FileName, xlsxC)
+	go constructSalaryXlsx(salaryMap, mConf.FileName, xlsxC, false)
 
 	//construct salary xlsx separate by risk
 	go func() {
 		s := strings.Split(mConf.FileName, ".")
-		constructSalaryXlsx(salaryRiskMap, fmt.Sprintf("%s_风险人员.%s", s[0], s[1]), xlsxC)
+		constructSalaryXlsx(salaryRiskMap, fmt.Sprintf("%s_风险人员.%s", s[0], s[1]), xlsxC, true)
 	}()
 
 	//construct transfer information xlsx for no risk

@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type Salary struct {
@@ -53,6 +54,11 @@ type SalaryStandardsPost struct {
 	Description    string //描述
 }
 
+type OverviewItems struct {
+	lock        sync.Mutex
+	overviewArr []Overview
+}
+
 // 根据字数定制备注列宽度
 var maxLenForBackupMap map[string]int
 
@@ -67,6 +73,20 @@ type SalaryBuildError struct {
 
 func (sbe SalaryBuildError) Error() string {
 	return sbe.msg
+}
+
+func (obj *OverviewItems) addItems(item Overview) {
+	for {
+		if obj.lock.TryLock() {
+			obj.overviewArr = append(obj.overviewArr, item)
+			obj.lock.Unlock()
+			break
+		}
+	}
+}
+
+func (obj *OverviewItems) items() []Overview {
+	return obj.overviewArr
 }
 
 func buildSalaries(staffs map[string]Staff, attendances map[string][]Attendance,

@@ -15,6 +15,7 @@ type MyError struct {
 	msg string
 }
 
-func (e MyError) Error() string{
+func (e MyError) Error() string {
 	return e.msg
 }
+
