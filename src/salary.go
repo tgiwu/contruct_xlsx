@@ -316,7 +316,7 @@ func CalcFQ(staff *Staff, attendance *Attendance, salary *Salary) error {
 		salary.NetPay = staff.Salary - (attendance.Duty-attendance.Actal)*100
 	}
 	//范崎路加班每天100
-	salary.SpecialPay += attendance.Temp_4 * ssMap["Temp_Guard_Cleaner"]
+	salary.SpecialPay += int(attendance.Temp_4 * float64(ssMap["Temp_Guard_Cleaner"]))
 
 	err = calcAfter(staff, attendance, salary)
 	if err != nil {
@@ -353,7 +353,7 @@ func CalcWP(staff *Staff, attendance *Attendance, salary *Salary) error {
 		//法定节假日三倍工资,每天基本工资80，3倍240
 		salary.OvertimePay += int(attendance.Temp_12 * ssMap["Temp_Guard_Holiday"])
 		//值班每天 60
-		salary.OvertimePay += attendance.Temp_4 * ssMap["Temp_Guard"]
+		salary.OvertimePay += int(attendance.Temp_4 * float64(ssMap["Temp_Guard"]))
 	}
 
 	err = calcAfter(staff, attendance, salary)
@@ -383,7 +383,7 @@ func CalcCommon(staff *Staff, attendance *Attendance, salary *Salary) error {
 		salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
 	}
 	salary.SpecialPay += attendance.Temp_12 * ssMap["Temp_12"]
-	salary.SpecialPay += attendance.Temp_4 * ssMap["Temp_4"]
+	salary.SpecialPay += int(attendance.Temp_4 * float64(ssMap["Temp_4"]))
 	salary.SpecialPay += attendance.Temp_8 * ssMap["Temp_8"]
 
 	err = calcAfter(staff, attendance, salary)
