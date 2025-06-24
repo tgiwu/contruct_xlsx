@@ -307,8 +307,11 @@ func CalcFQ(staff *Staff, attendance *Attendance, salary *Salary) error {
 	if err != nil {
 		return err
 	}
-
-	if attendance.Duty <= attendance.Actal {
+	//入职月工作天数不满月，每天100
+	if strings.Contains(attendance.Backup, "入职") && attendance.Actal < attendance.Duty {
+		salary.NetPay = 100 * attendance.Duty
+	//超出应出勤的天数每天100
+	} else if attendance.Duty <= attendance.Actal {
 		salary.NetPay = staff.Salary
 		salary.OvertimePay += 100 * (attendance.Actal - attendance.Duty)
 	} else {
