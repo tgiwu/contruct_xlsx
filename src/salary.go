@@ -309,11 +309,11 @@ func CalcFQ(staff *Staff, attendance *Attendance, salary *Salary) error {
 	}
 	//入职月工作天数不满月，每天100
 	if strings.Contains(attendance.Backup, "入职") && attendance.Actal < attendance.Duty {
-		//月薪超过3000按日平均工资计算首月工资；未超过3000的按日薪100计算
+		//试行逻辑，领导说不清楚怎么发--！，月薪超过3000按日平均工资计算首月工资；未超过3000的按日薪100计算
 		if staff.Salary > 3000 {
 			salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
 		} else {
-			salary.NetPay = 100 * attendance.Duty
+			salary.NetPay = 100 * attendance.Actal
 		}
 		//超出应出勤的天数每天100
 	} else if attendance.Duty <= attendance.Actal {
