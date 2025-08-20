@@ -11,6 +11,7 @@ import (
 )
 
 const CONFIG_PATH = "config/"
+const CONFIG_COMMON_PATH = "C:/Users/Lenovo/"
 
 type config struct {
 	AttendanceFolder             string   `mapstructure:"attendance_folder"`
@@ -43,8 +44,8 @@ var mConf config
 func readConfig() {
 
 	vip := viper.New()
-	vip.AddConfigPath(CONFIG_PATH)
-	vip.SetConfigName("config_common.yaml")
+	vip.AddConfigPath(CONFIG_COMMON_PATH)
+	vip.SetConfigName("config_common_salary.yaml")
 
 	vip.SetConfigType("yaml")
 

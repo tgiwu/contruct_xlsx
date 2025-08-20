@@ -1,10 +1,9 @@
-metered_key: 5f894ce9917b83b6e09b6b54743bc2c5fcf754bf196fecabff03724136fb2104
+metered_key: 5f894ce9917b83b6e09b6b54
 corporation_name: 北京有限公司
 corporation_account: "0200"
 attendance_folder: "../attendance"
 staff_file_path: "/Users/yangzhang/Downloads/工作/查询表/全体员工信息.xlsx"
 output_path: "../output"
-ignore: ["雷晓利"]
 file_name: "salary.xlsx"
 file_transfer_name: "transfer.xlsx"
 year: 2025
