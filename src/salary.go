@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -355,7 +356,7 @@ func CalcWP(staff *Staff, attendance *Attendance, salary *Salary) error {
 		case attendance.Duty == attendance.Actal:
 			salary.NetPay = staff.Salary
 		default:
-			salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
+			salary.NetPay = int(math.Round(float64(staff.Salary) / float64(attendance.Duty) * float64(attendance.Actal)))
 		}
 
 		//法定节假日三倍工资,每天基本工资80，3倍240
@@ -388,10 +389,10 @@ func CalcCommon(staff *Staff, attendance *Attendance, salary *Salary) error {
 	} else if attendance.Duty == attendance.Actal {
 		salary.NetPay = staff.Salary
 	} else {
-		salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
+		salary.NetPay = int(math.Round(float64(staff.Salary) / float64(attendance.Duty) * float64(attendance.Actal)))
 	}
 	salary.SpecialPay += attendance.Temp_12 * ssMap["Temp_12"]
-	salary.SpecialPay += int(attendance.Temp_4 * float64(ssMap["Temp_4"]))
+	salary.SpecialPay += int(math.Round(attendance.Temp_4 * float64(ssMap["Temp_4"])))
 	salary.SpecialPay += attendance.Temp_8 * ssMap["Temp_8"]
 
 	err = calcAfter(staff, attendance, salary)

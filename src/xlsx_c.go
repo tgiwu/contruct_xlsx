@@ -28,7 +28,7 @@ const TYPE_ROW_TOTAL = 4
 var styleM map[int]int
 
 // overviewArr will be used multi times, empty it before use
-var	overviewItems = OverviewItems{}
+var overviewItems = OverviewItems{}
 
 type EmptyError struct {
 	msg string
@@ -50,7 +50,6 @@ func constructSalaryXlsx(salaryMap map[string]map[string]Salary, fileName string
 
 	slices.Sort(keys)
 
-
 	//生成单个工作表
 	for _, key := range keys {
 		constructSalarySheet(excel, key, salaryMap[key], withRisk)
@@ -58,7 +57,7 @@ func constructSalaryXlsx(salaryMap map[string]map[string]Salary, fileName string
 
 	//生成总览表
 	if withRisk {
-		fmt.Printf("overview : %+v", &overviewItems)	
+		fmt.Printf("overview : %+v", &overviewItems)
 		constructOverviewSheet(excel, &overviewItems)
 	}
 
@@ -103,9 +102,10 @@ func constructOverviewSheet(excel *excelize.File, items *OverviewItems) {
 					case reflect.String:
 						excel.SetCellStr(SALARY_SHEET_NAME_OVERVIEW, pos(i+2, j), value.String())
 					case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
-						if s == SALARY_OVERVIEW_COLUMN_NUMBER {
+						switch s {
+						case SALARY_OVERVIEW_COLUMN_NUMBER:
 							numOfStaffTotal += int(value.Int())
-						} else if s == SALARY_OVERVIEW_COLUMN_SALARY {
+						case SALARY_OVERVIEW_COLUMN_SALARY:
 							account += int(value.Int())
 						}
 						excel.SetCellInt(SALARY_SHEET_NAME_OVERVIEW, pos(i+2, j), int(value.Int()))
@@ -401,7 +401,7 @@ func constructTransferInfoXlsx(transferInfos *[]TransferInfo, fileName string, f
 	excel.DeleteSheet("Sheet1")
 
 	filePath := filepath.Join(mConf.OutputPath, fileName)
-		
+
 	delFileIfExist(mConf.OutputPath, fileName)
 	excel.SaveAs(filePath)
 	finishChan <- fmt.Sprintf("%s finish !!", fileName)
