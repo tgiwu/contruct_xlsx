@@ -27,7 +27,8 @@ const TYPE_ROW_TOTAL = 4
 
 var styleM map[int]int
 
-var overviewArr []Overview
+// overviewArr will be used multi times, empty it before use
+var overviewItems = OverviewItems{}
 
 type EmptyError struct {
 	msg string
@@ -38,7 +39,7 @@ func (ee EmptyError) Error() string {
 }
 
 // 构建excel
-func constructSalaryXlsx(salaryMap map[string]map[string]Salary, fileName string) error {
+func constructSalaryXlsx(salaryMap map[string]map[string]Salary, fileName string, finishChan chan string, withRisk bool) error {
 	fmt.Printf("construct xlsx %s start\n", fileName)
 	excel := excelize.NewFile()
 
@@ -48,32 +49,31 @@ func constructSalaryXlsx(salaryMap map[string]map[string]Salary, fileName string
 	}
 
 	slices.Sort(keys)
-	// overviewArr will be used multi times, empty it before use
-	overviewArr = make([]Overview, 0)
 
 	//生成单个工作表
 	for _, key := range keys {
-		constructSalarySheet(excel, key, salaryMap[key])
+		constructSalarySheet(excel, key, salaryMap[key], withRisk)
 	}
+
 	//生成总览表
-	constructOverviewSheet(excel, overviewArr)
+	if withRisk {
+		fmt.Printf("overview : %+v", &overviewItems)
+		constructOverviewSheet(excel, &overviewItems)
+	}
+
 	//删除默认工作表
 	excel.DeleteSheet("Sheet1")
 
-	if len(fileName) == 0 {
-		delFileIfExist(mConf.OutputPath, mConf.FileName)
-		excel.SaveAs(filepath.Join(mConf.OutputPath, mConf.FileName))
-	} else {
-		delFileIfExist(mConf.OutputPath, fileName)
-		excel.SaveAs(filepath.Join(mConf.OutputPath, fileName))
-	}
-	fmt.Printf("construct xlsx %s end\n", fileName)
+	delFileIfExist(mConf.OutputPath, fileName)
+	excel.SaveAs(filepath.Join(mConf.OutputPath, fileName))
+	finishChan <- fmt.Sprintf("%s finish !!", fileName)
+
 	return nil
 }
 
-func constructOverviewSheet(excel *excelize.File, overviews []Overview) {
+func constructOverviewSheet(excel *excelize.File, items *OverviewItems) {
 
-	slices.SortFunc(overviews, func(a, b Overview) int {
+	slices.SortFunc(items.items(), func(a, b Overview) int {
 		return strings.Compare(a.Area, b.Area)
 	})
 
@@ -87,7 +87,7 @@ func constructOverviewSheet(excel *excelize.File, overviews []Overview) {
 
 	numOfStaffTotal := 0
 	account := 0
-	for i, overview := range overviews {
+	for i, overview := range items.items() {
 		for j, s := range mConf.OverviewHeader {
 
 			if s == "序号" {
@@ -102,9 +102,10 @@ func constructOverviewSheet(excel *excelize.File, overviews []Overview) {
 					case reflect.String:
 						excel.SetCellStr(SALARY_SHEET_NAME_OVERVIEW, pos(i+2, j), value.String())
 					case reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8:
-						if s == SALARY_OVERVIEW_COLUMN_NUMBER {
+						switch s {
+						case SALARY_OVERVIEW_COLUMN_NUMBER:
 							numOfStaffTotal += int(value.Int())
-						} else if s == SALARY_OVERVIEW_COLUMN_SALARY {
+						case SALARY_OVERVIEW_COLUMN_SALARY:
 							account += int(value.Int())
 						}
 						excel.SetCellInt(SALARY_SHEET_NAME_OVERVIEW, pos(i+2, j), int(value.Int()))
@@ -122,20 +123,20 @@ func constructOverviewSheet(excel *excelize.File, overviews []Overview) {
 		}
 	}
 
-	excel.MergeCell(SALARY_SHEET_NAME_OVERVIEW, pos(len(overviews)+2, 0), pos(len(overviews)+2, 1))
+	excel.MergeCell(SALARY_SHEET_NAME_OVERVIEW, pos(len(items.items())+2, 0), pos(len(items.items())+2, 1))
 
-	excel.SetCellStr(SALARY_SHEET_NAME_OVERVIEW, pos(len(overviews)+2, 0), "合计")
-	excel.SetCellStyle(SALARY_SHEET_NAME_OVERVIEW, pos(len(overviews)+2, 0), pos(len(overviews)+2, 1), cellStyle(excel, TYPE_ROW_TOTAL))
+	excel.SetCellStr(SALARY_SHEET_NAME_OVERVIEW, pos(len(items.items())+2, 0), "合计")
+	excel.SetCellStyle(SALARY_SHEET_NAME_OVERVIEW, pos(len(items.items())+2, 0), pos(len(items.items())+2, 1), cellStyle(excel, TYPE_ROW_TOTAL))
 
-	excel.SetCellInt(SALARY_SHEET_NAME_OVERVIEW, pos(len(overviews)+2, slices.Index(mConf.OverviewHeader, SALARY_OVERVIEW_COLUMN_NUMBER)), numOfStaffTotal)
-	excel.SetCellStyle(SALARY_SHEET_NAME_OVERVIEW, pos(len(overviews)+2, slices.Index(mConf.OverviewHeader, SALARY_OVERVIEW_COLUMN_NUMBER)), pos(len(overviews)+2, slices.Index(mConf.OverviewHeader, "发放人数")), cellStyle(excel, STYLE_TYPE_NORMAL))
+	excel.SetCellInt(SALARY_SHEET_NAME_OVERVIEW, pos(len(items.items())+2, slices.Index(mConf.OverviewHeader, SALARY_OVERVIEW_COLUMN_NUMBER)), numOfStaffTotal)
+	excel.SetCellStyle(SALARY_SHEET_NAME_OVERVIEW, pos(len(items.items())+2, slices.Index(mConf.OverviewHeader, SALARY_OVERVIEW_COLUMN_NUMBER)), pos(len(items.items())+2, slices.Index(mConf.OverviewHeader, "发放人数")), cellStyle(excel, STYLE_TYPE_NORMAL))
 
-	excel.SetCellInt(SALARY_SHEET_NAME_OVERVIEW, pos(len(overviews)+2, slices.Index(mConf.OverviewHeader, SALARY_OVERVIEW_COLUMN_SALARY)), account)
-	excel.SetCellStyle(SALARY_SHEET_NAME_OVERVIEW, pos(len(overviews)+2, slices.Index(mConf.OverviewHeader, SALARY_OVERVIEW_COLUMN_SALARY)), pos(len(overviews)+2, slices.Index(mConf.OverviewHeader, "备注")), cellStyle(excel, STYLE_TYPE_TOTAL))
+	excel.SetCellInt(SALARY_SHEET_NAME_OVERVIEW, pos(len(items.items())+2, slices.Index(mConf.OverviewHeader, SALARY_OVERVIEW_COLUMN_SALARY)), account)
+	excel.SetCellStyle(SALARY_SHEET_NAME_OVERVIEW, pos(len(items.items())+2, slices.Index(mConf.OverviewHeader, SALARY_OVERVIEW_COLUMN_SALARY)), pos(len(items.items())+2, slices.Index(mConf.OverviewHeader, "备注")), cellStyle(excel, STYLE_TYPE_TOTAL))
 
 }
 
-func constructSalarySheet(excel *excelize.File, sheetName string, salary map[string]Salary) {
+func constructSalarySheet(excel *excelize.File, sheetName string, salary map[string]Salary, withRisk bool) {
 	excel.NewSheet(sheetName)
 
 	list := make([]Salary, len(salary)+1)
@@ -143,8 +144,9 @@ func constructSalarySheet(excel *excelize.File, sheetName string, salary map[str
 	overview := Overview{Area: sheetName}
 
 	calcTotal(&salary, &list, &total, &overview)
-
-	overviewArr = append(overviewArr, overview)
+	if withRisk {
+		overviewItems.addItems(overview)
+	}
 
 	fillTitle(excel, sheetName, getTitle(sheetName, mConf.Month, mConf.Year))
 	fillHeader(excel, sheetName, mConf.HeadersRisk)
@@ -279,7 +281,7 @@ func fillTotal(excel *excelize.File, sheetName string, row int, total Salary) {
 	excel.SetCellFormula(sheetName, pos(row, 5), total.totalNetPay)
 
 	indexOfTotal := -1
-	for index,name := range mConf.HeadersRisk {
+	for index, name := range mConf.HeadersRisk {
 		if name == "合计" {
 			indexOfTotal = index
 		}
@@ -293,7 +295,7 @@ func fillTotal(excel *excelize.File, sheetName string, row int, total Salary) {
 
 	excel.SetCellFormula(sheetName, pos(row, indexOfTotal), total.totalAccount)
 	excel.SetCellStyle(sheetName, pos(row, indexOfTotal), pos(row, indexOfTotal), cellStyle(excel, TYPE_ROW_TOTAL))
-	//set style for columns behind total 
+	//set style for columns behind total
 	excel.SetCellStyle(sheetName, pos(row, indexOfTotal+1), pos(row, len(mConf.HeadersRisk)-1), cellStyle(excel, TYPE_ROW_TOTAL))
 }
 
@@ -390,7 +392,7 @@ func getTitle(sheetName string, month int, year int) string {
 	return fmt.Sprintf("%s%d年%d月工资", sheetName, year, month)
 }
 
-func constructTransferInfoXlsx(transferInfos *[]TransferInfo, fileName string) {
+func constructTransferInfoXlsx(transferInfos *[]TransferInfo, fileName string, finishChan chan string) {
 	excel := excelize.NewFile()
 
 	constructTransferInfoSheet(excel, "transferInfo", transferInfos)
@@ -398,13 +400,12 @@ func constructTransferInfoXlsx(transferInfos *[]TransferInfo, fileName string) {
 	//删除默认工作表
 	excel.DeleteSheet("Sheet1")
 
-	if len(fileName) == 0 {
-		delFileIfExist(mConf.OutputPath, mConf.FileName)
-		excel.SaveAs(filepath.Join(mConf.OutputPath, "transfer.xlsx"))
-	} else {
-		delFileIfExist(mConf.OutputPath, fileName)
-		excel.SaveAs(filepath.Join(mConf.OutputPath, fileName))
-	}
+	filePath := filepath.Join(mConf.OutputPath, fileName)
+
+	delFileIfExist(mConf.OutputPath, fileName)
+	excel.SaveAs(filePath)
+	finishChan <- fmt.Sprintf("%s finish !!", fileName)
+
 }
 
 func constructTransferInfoSheet(excel *excelize.File, sheet string, transferInfos *[]TransferInfo) {

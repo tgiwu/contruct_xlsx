@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	"math"
+	"slices"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type Salary struct {
@@ -52,6 +55,11 @@ type SalaryStandardsPost struct {
 	Description    string //描述
 }
 
+type OverviewItems struct {
+	lock        sync.Mutex
+	overviewArr []Overview
+}
+
 // 根据字数定制备注列宽度
 var maxLenForBackupMap map[string]int
 
@@ -68,15 +76,54 @@ func (sbe SalaryBuildError) Error() string {
 	return sbe.msg
 }
 
-func buildSalaries(staffs map[string]Staff, attendances map[string]map[string]Attendance,
+func (obj *OverviewItems) addItems(item Overview) {
+	for {
+		if obj.lock.TryLock() {
+			obj.overviewArr = append(obj.overviewArr, item)
+			obj.lock.Unlock()
+			break
+		}
+	}
+}
+
+func (obj *OverviewItems) items() []Overview {
+	return obj.overviewArr
+}
+
+func buildSalaries(staffs map[string]Staff, attendances map[string][]Attendance,
 	salaryMap *map[string]map[string]Salary, salaryRiskMap *map[string]map[string]Salary) error {
 
-	for _, atts := range attendances {
-		for name, attendance := range atts {
+	keys := make([]string, 0, len(attendances))
+	for k := range attendances {
+		keys = append(keys, k)
+	}
+
+	if len(mConf.AreaSortArray) > 0 {
+		areaIndexMap := make(map[string]int, len(mConf.AreaSortArray))
+		for i, area := range mConf.AreaSortArray {
+			areaIndexMap[area] = i
+		}
+
+		slices.SortFunc(keys, func(x string, y string) int {
+			xi, yi := -1, -1
+
+			if i, found := areaIndexMap[x]; found {
+				xi = i
+			}
+
+			if i, found := areaIndexMap[y]; found {
+				yi = i
+			}
+			return xi - yi
+		})
+	}
+	for _, key := range keys {
+
+		for _, attendance := range attendances[key] {
 
 			if len(mConf.Ignore) != 0 {
 				for _, ignore := range mConf.Ignore {
-					if ignore == name {
+					if ignore == attendance.Name {
 						//ignore
 						continue
 					}
@@ -86,7 +133,7 @@ func buildSalaries(staffs map[string]Staff, attendances map[string]map[string]At
 
 			if !found {
 				fmt.Printf("staff %+v", staffMap)
-				return SalaryBuildError{msg: fmt.Sprintf("Can not find staff named %s in staffs!!", name)}
+				return SalaryBuildError{msg: fmt.Sprintf("Can not find staff named %s in staffs!!", attendance.Name)}
 			}
 
 			salary := new(Salary)
@@ -101,7 +148,7 @@ func buildSalaries(staffs map[string]Staff, attendances map[string]map[string]At
 					items = make(map[string]Salary, 0)
 				}
 
-				items[name] = *salary
+				items[attendance.Name] = *salary
 
 				(*salaryMap)[attendance.Postion] = items
 			}
@@ -131,7 +178,7 @@ func buildSalaries(staffs map[string]Staff, attendances map[string]map[string]At
 				//recalc account formula
 				salaryCopy.AccountFormula = fmt.Sprintf("=SUM(%s:%s) - %s", pos(salaryCopy.Id+1, sumStart),
 					pos(salaryCopy.Id+1, sumEnd), pos(salaryCopy.Id+1, deduction))
-				items[name] = *salaryCopy
+				items[attendance.Name] = *salaryCopy
 
 				(*salaryRiskMap)[SHEET_NAME_RISK] = items
 				salaryNextIdMap[SHEET_NAME_RISK]++
@@ -146,7 +193,7 @@ func buildSalaries(staffs map[string]Staff, attendances map[string]map[string]At
 				salaryCopy.AccountFormula = fmt.Sprintf("=SUM(%s:%s) - %s", pos(salaryCopy.Id+1, sumStart),
 					pos(salaryCopy.Id+1, sumEnd), pos(salaryCopy.Id+1, deduction))
 
-				items[name] = *salaryCopy
+				items[attendance.Name] = *salaryCopy
 
 				(*salaryRiskMap)[SHEET_NAME_NO_RISK] = items
 				salaryNextIdMap[SHEET_NAME_NO_RISK]++
@@ -261,8 +308,16 @@ func CalcFQ(staff *Staff, attendance *Attendance, salary *Salary) error {
 	if err != nil {
 		return err
 	}
-
-	if attendance.Duty <= attendance.Actal {
+	//入职月工作天数不满月，每天100
+	if strings.Contains(attendance.Backup, "入职") && attendance.Actal < attendance.Duty {
+		//试行逻辑，领导说不清楚怎么发--！，月薪超过3000按日平均工资计算首月工资；未超过3000的按日薪100计算
+		if staff.Salary > 3000 {
+			salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
+		} else {
+			salary.NetPay = 100 * attendance.Actal
+		}
+		//超出应出勤的天数每天100
+	} else if attendance.Duty <= attendance.Actal {
 		salary.NetPay = staff.Salary
 		salary.OvertimePay += 100 * (attendance.Actal - attendance.Duty)
 	} else {
@@ -270,7 +325,7 @@ func CalcFQ(staff *Staff, attendance *Attendance, salary *Salary) error {
 		salary.NetPay = staff.Salary - (attendance.Duty-attendance.Actal)*100
 	}
 	//范崎路加班每天100
-	salary.SpecialPay += attendance.Temp_4 * ssMap["Temp_Guard_Cleaner"]
+	salary.SpecialPay += int(attendance.Temp_4 * float64(ssMap["Temp_Guard_Cleaner"]))
 
 	err = calcAfter(staff, attendance, salary)
 	if err != nil {
@@ -301,13 +356,13 @@ func CalcWP(staff *Staff, attendance *Attendance, salary *Salary) error {
 		case attendance.Duty == attendance.Actal:
 			salary.NetPay = staff.Salary
 		default:
-			salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
+			salary.NetPay = int(math.Round(float64(staff.Salary) / float64(attendance.Duty) * float64(attendance.Actal)))
 		}
 
 		//法定节假日三倍工资,每天基本工资80，3倍240
 		salary.OvertimePay += int(attendance.Temp_12 * ssMap["Temp_Guard_Holiday"])
 		//值班每天 60
-		salary.OvertimePay += attendance.Temp_Guard * ssMap["Temp_Guard"]
+		salary.OvertimePay += int(attendance.Temp_4 * float64(ssMap["Temp_Guard"]))
 	}
 
 	err = calcAfter(staff, attendance, salary)
@@ -334,10 +389,10 @@ func CalcCommon(staff *Staff, attendance *Attendance, salary *Salary) error {
 	} else if attendance.Duty == attendance.Actal {
 		salary.NetPay = staff.Salary
 	} else {
-		salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
+		salary.NetPay = int(math.Round(float64(staff.Salary) / float64(attendance.Duty) * float64(attendance.Actal)))
 	}
 	salary.SpecialPay += attendance.Temp_12 * ssMap["Temp_12"]
-	salary.SpecialPay += attendance.Temp_4 * ssMap["Temp_4"]
+	salary.SpecialPay += int(math.Round(attendance.Temp_4 * float64(ssMap["Temp_4"])))
 	salary.SpecialPay += attendance.Temp_8 * ssMap["Temp_8"]
 
 	err = calcAfter(staff, attendance, salary)

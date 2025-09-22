@@ -324,6 +324,7 @@ func visitRow(row *xlsx.Row, headerMap *map[int]string, staff *Staff) {
 			if fieldObj, ok := refType.FieldByName((*headerMap)[i]); ok {
 
 				switch {
+				//if josn in backup,it's salary calculation
 				case (*headerMap)[i] == "BackUp" && strings.Index(str, "json:") == 0:
 					str = str[len("json:"):]
 					var backupStaff BackUpStaff
@@ -342,9 +343,15 @@ func visitRow(row *xlsx.Row, headerMap *map[int]string, staff *Staff) {
 		}
 	}
 
+	//remove space ahead and tail
+	if len(staff.IdCard) > 18 {
+		staff.IdCard = strings.Trim(staff.IdCard, " ")
+	}
+
 	if len(staff.IdCard) == 18 {
 		ageAndSex(staff)
-		// fmt.Printf("%+v \n", staff)
+	} else {
+		fmt.Printf("非法的身份证号 %+v \n", staff)
 	}
 }
 

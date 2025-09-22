@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"reflect"
 	"strconv"
 
@@ -9,21 +8,20 @@ import (
 )
 
 type Attendance struct {
-	Id               int    //序号
-	Name             string //姓名
-	Duty             int    //应出勤
-	Actal            int    //实际出勤
-	Temp_8           int    //8小时临勤
-	Temp_12          int    //12小时临勤；外派人员法定节假日
-	Temp_4           int    //4小时临勤；加班
-	Temp_Guard       int    //外派值班
-	Sickness         int    //病假
-	Special          int    //特殊费用
-	Deduction        int    //扣款，可能是社保或罚款
-	Backup           string //备注
-	Postion          string //区域
-	TempTransfer     int    //借调天数
-	TempTransferPost string //借调岗位简称
+	Id               int     //序号
+	Name             string  //姓名
+	Duty             int     //应出勤
+	Actal            int     //实际出勤
+	Temp_8           int     //8小时临勤
+	Temp_12          int     //12小时临勤；外派人员法定节假日
+	Temp_4           float64 //4小时临勤；加班
+	Sickness         int     //病假
+	Special          int     //特殊费用
+	Deduction        int     //扣款，可能是社保或罚款
+	Backup           string  //备注
+	Postion          string  //区域
+	TempTransfer     int     //借调天数
+	TempTransferPost string  //借调岗位简称
 }
 
 func readFormXlsxAttendance(path string, c chan Attendance, finishC chan string) {
@@ -32,11 +30,11 @@ func readFormXlsxAttendance(path string, c chan Attendance, finishC chan string)
 		return
 	}
 
-	fmt.Println("sheet len: ", len(file.Sheets))
+	// fmt.Println("sheet len: ", len(file.Sheets))
 
 	for _, sheet := range file.Sheets {
 		var headerMap = map[int]string{}
-		fmt.Printf("mix row %d, col %d\n", sheet.MaxRow, sheet.MaxCol)
+		// fmt.Printf("mix row %d, col %d\n", sheet.MaxRow, sheet.MaxCol)
 		for index := range sheet.MaxRow {
 			attendance := Attendance{Id: -1}
 			row, err := sheet.Row(index)
@@ -86,8 +84,6 @@ func visitorRow(row *xlsx.Row, attendance *Attendance, headerMap *map[int]string
 				(*headerMap)[i] = "Temp_12"
 			case "临勤（4）":
 				(*headerMap)[i] = "Temp_4"
-			case "外派值班":
-				(*headerMap)[i] = "Temp_Guard"
 			case "病假":
 				(*headerMap)[i] = "Sickness"
 			case "特殊费用":
@@ -107,6 +103,7 @@ func visitorRow(row *xlsx.Row, attendance *Attendance, headerMap *map[int]string
 			}
 		} else {
 			val, _ := strconv.Atoi(str)
+			f,_ := strconv.ParseFloat(str, 64)
 			refType := reflect.TypeOf(*attendance)
 			if refType.Kind() != reflect.Struct {
 				panic("not struct")
@@ -115,11 +112,12 @@ func visitorRow(row *xlsx.Row, attendance *Attendance, headerMap *map[int]string
 			if fieldObj, ok := refType.FieldByName((*headerMap)[i]); ok {
 				if fieldObj.Type.Kind() == reflect.Int {
 					reflect.ValueOf(attendance).Elem().FieldByName((*headerMap)[i]).SetInt(int64(val))
-
+				}
+				if fieldObj.Type.Kind() == reflect.Float64 {
+					reflect.ValueOf(attendance).Elem().FieldByName((*headerMap)[i]).SetFloat(float64(f))
 				}
 				if fieldObj.Type.Kind() == reflect.String {
 					reflect.ValueOf(attendance).Elem().FieldByName((*headerMap)[i]).SetString(str)
-
 				}
 			}
 		}

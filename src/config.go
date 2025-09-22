@@ -11,6 +11,7 @@ import (
 )
 
 const CONFIG_PATH = "config/"
+const CONFIG_COMMON_PATH = "C:/Users/Lenovo/"
 
 type config struct {
 	AttendanceFolder             string   `mapstructure:"attendance_folder"`
@@ -18,6 +19,7 @@ type config struct {
 	Ignore                       []string `mapstructure:"ignore"`
 	OutputPath                   string   `mapstructure:"output_path"`
 	FileName                     string   `mapstructure:"file_name"`
+	FileTransferName             string   `mapstructure:"file_transfer_name"`
 	Month                        int      `mapstructure:"month"`
 	Year                         int      `mapstructure:"year"`
 	Headers                      []string `mapstructure:"headers"`
@@ -30,10 +32,11 @@ type config struct {
 	SalaryPurpose                string   `mapstructure:"salary_purpose"`
 	OverviewHeader               []string `mapstructure:"overview_header"`
 	OverviewHeaderMap            map[string]string
-	SheetNameStaff               string `mapstructure:"staff_sheet_name"`
-	SheetNameSalaryStandardsTemp string `mapstructure:"salary_standards_temp_sheet_name"`
-	SheetNameSalaryStandardsPost string `mapstructure:"salary_standards_post_sheet_name"`
-	ConstructTransferFile        bool   `mapstructure:"construct_transfer_file"`
+	SheetNameStaff               string   `mapstructure:"staff_sheet_name"`
+	SheetNameSalaryStandardsTemp string   `mapstructure:"salary_standards_temp_sheet_name"`
+	SheetNameSalaryStandardsPost string   `mapstructure:"salary_standards_post_sheet_name"`
+	ConstructTransferFile        bool     `mapstructure:"construct_transfer_file"`
+	AreaSortArray                []string `mapstructure:"area_sort_array"`
 }
 
 var mConf config
@@ -41,8 +44,8 @@ var mConf config
 func readConfig() {
 
 	vip := viper.New()
-	vip.AddConfigPath(CONFIG_PATH)
-	vip.SetConfigName("config_common.yaml")
+	vip.AddConfigPath(CONFIG_COMMON_PATH)
+	vip.SetConfigName("config_common_salary.yaml")
 
 	vip.SetConfigType("yaml")
 
