@@ -10,6 +10,7 @@ import (
 	"text/template"
 
 	"github.com/360EntSecGroup-Skylar/excelize"
+	log "github.com/sirupsen/logrus"
 )
 
 const STYLE_TYPE_TITLE = 0
@@ -40,7 +41,7 @@ func (ee EmptyError) Error() string {
 
 // 构建excel
 func constructSalaryXlsx(salaryMap map[string]map[string]Salary, fileName string, finishChan chan string, withRisk bool) error {
-	fmt.Printf("construct xlsx %s start\n", fileName)
+	log.Infof("construct xlsx %s start\n", fileName)
 	excel := excelize.NewFile()
 
 	keys := make([]string, 0, len(salaryMap))
@@ -57,7 +58,7 @@ func constructSalaryXlsx(salaryMap map[string]map[string]Salary, fileName string
 
 	//生成总览表
 	if withRisk {
-		fmt.Printf("overview : %+v", &overviewItems)
+		log.Infof("overview : %+v", &overviewItems)
 		constructOverviewSheet(excel, &overviewItems)
 	}
 
@@ -255,7 +256,7 @@ func fillRow(excel *excelize.File, sheetName string, salaries []Salary) {
 			}
 
 			if len(salary.ErrorMap) > 0 {
-				fmt.Println("has error")
+				log.Infoln("has error")
 			}
 			comment, f := salary.ErrorMap[s]
 			if f {
@@ -382,8 +383,7 @@ func cellStyle(excel *excelize.File, styleNo int) int {
 	// fmt.Printf("stylestr : %s", styleStr)
 	styleId, err := excel.NewStyle(styleStr)
 	if err != nil {
-		fmt.Printf("%d err str %s", styleNo, styleStr)
-		panic(err)
+		log.Panicf("%d err str %s", styleNo, styleStr)	
 	}
 	return styleId
 }
