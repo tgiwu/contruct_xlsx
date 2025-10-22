@@ -75,8 +75,6 @@ github.com/subosito/gotenv v1.6.0 h1:9NlTDc1FTs4qu0DDq7AEtTPNw6SVm7uBMsUCUjABIf8
 github.com/subosito/gotenv v1.6.0/go.mod h1:Dk4QP5c2W3ibzajGcXpNraDfq2IrhjMIvMSWPKKo0FU=
 github.com/tealeg/xlsx/v3 v3.3.9 h1:d27gmScniKQbyHe1Pp0CXNRKB2/L6/6Fp7yLyVuSCVo=
 github.com/tealeg/xlsx/v3 v3.3.9/go.mod h1:KV4FTFtvGy0TBlOivJLZu/YNZk6e0Qtk7eOSglWksuA=
-github.com/unidoc/unioffice v1.36.0 h1:9kEUK3hQhVAB7g3lROsvCrSMZsxSwFmC1UiMox7RohQ=
-github.com/unidoc/unioffice v1.36.0/go.mod h1:VL/S9i/xd2zYqZCUzO6CFPr3kM4iKj/tLcEcthAilgU=
 github.com/unidoc/unioffice v1.38.0 h1:JX8cAwlpiM73p1KuOxlrx1F/6q+8CC3Bpp+0td+ijcA=
 github.com/unidoc/unioffice v1.38.0/go.mod h1:VL/S9i/xd2zYqZCUzO6CFPr3kM4iKj/tLcEcthAilgU=
 go.uber.org/atomic v1.9.0 h1:ECmE8Bn/WFTYwEW/bpKD3M8VtR/zQVbavAoalC1PYyE=

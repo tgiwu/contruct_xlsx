@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -43,6 +44,7 @@ var mConf config
 
 func readConfig() {
 
+	initLog()
 	configName := "config"
 	switch runtime.GOOS {
 	case "windows":
@@ -66,9 +68,9 @@ func readConfig() {
 
 	if err := vip.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			fmt.Println("not find " + err.Error())
+			log.Infoln("not find " + err.Error())
 		} else {
-			fmt.Printf("read config file err, %v \n", err)
+			log.Infof("read config file err, %v \n", err)
 		}
 	}
 
@@ -82,7 +84,7 @@ func readConfig() {
 
 	err = vip.Unmarshal(&mConf)
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 
 	if len(mConf.Headers) != 0 {
@@ -105,7 +107,7 @@ func readConfig() {
 		mConf.HeadersRiskMap = *headerRiskMap
 	}
 
-	fmt.Printf("config %+v \n", mConf)
+	log.Infof("config %+v \n", mConf)
 }
 
 func analysisHeader(list []string, resultMap *map[string]string) error {
@@ -153,4 +155,10 @@ func analysisHeader(list []string, resultMap *map[string]string) error {
 		}
 	}
 	return nil
+}
+
+func initLog() error {
+	log.SetOutput(os.Stdout)
+	log.SetLevel(log.DebugLevel)
+	return  nil
 }

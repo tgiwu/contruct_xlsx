@@ -6,6 +6,8 @@ import (
 	"sync"
 
 	"github.com/unidoc/unioffice/common/license"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // area to (name to attendance)
@@ -29,6 +31,7 @@ var spMap = make(map[string]int)
 func main() {
 
 	readConfig()
+
 	err := license.SetMeteredKey(mConf.MeteredKey)
 	if err != nil {
 		panic(err)
@@ -42,7 +45,7 @@ func main() {
 	}
 
 	if len(*filePaths) == 0 {
-		fmt.Println("Attendance folder is empty over")
+		log.Infoln("Attendance folder is empty over")
 	}
 
 	var attChan = make(chan Attendance)
@@ -71,12 +74,12 @@ func main() {
 
 	wg.Wait()
 
-	fmt.Println("--------------------read finish--------------------")
+	log.Infoln("--------------------read finish--------------------")
 
 	err = buildSalaries(staffMap, attMap, &salaryMap, &salaryRiskMap)
 
 	if err != nil {
-		panic("build salary map failed " + err.Error())
+		log.Panic(" build salary map failed " + err.Error())
 	}
 
 	//salary excel
@@ -91,7 +94,7 @@ func main() {
 	//start xlsx construction handler
 	go handleXLSXSignal(xlsxC, &xlsxWG, xlsxCount)
 	xlsxWG.Add(xlsxCount)
-	
+
 	//construct salary xlsx normal
 	go constructSalaryXlsx(salaryMap, mConf.FileName, xlsxC, false)
 
@@ -109,7 +112,7 @@ func main() {
 	}()
 	xlsxWG.Wait()
 
-	fmt.Println("all finish")
+	log.Infoln("all finish")
 }
 
 func handleChan(attChan chan Attendance, finishChan chan string, staffChan chan Staff, ssChan chan SalaryStandardsTemp, spChan chan SalaryStandardsPost, wg *sync.WaitGroup, count int) {
@@ -132,7 +135,7 @@ func handleChan(attChan chan Attendance, finishChan chan string, staffChan chan 
 		case signal := <-finishChan:
 
 			wg.Done()
-			fmt.Println("read finish ", signal)
+			log.Info("read finish ", signal)
 			count--
 
 			if count == 0 {
@@ -146,7 +149,7 @@ func handleXLSXSignal(c chan string, xlsxWg *sync.WaitGroup, count int) {
 
 	for {
 		s := <-c
-		fmt.Println(s)
+		log.Infoln(s)
 		xlsxWg.Done()
 		count--
 		if count == 0 {

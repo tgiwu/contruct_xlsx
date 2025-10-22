@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	log "github.com/sirupsen/logrus"
 )
 
 func listXlsxFile(files *[]string) (err error) {
@@ -35,18 +36,18 @@ func delFileIfExist(path string, name string) {
 	if err == nil {
 		err = os.Remove(file)
 		if err != nil {
-			fmt.Printf("del %s failed: %s\n", file, err.Error())
+			log.Infof("del %s failed: %s\n", file, err.Error())
 		}
 	}
 
 	if os.IsNotExist(err) {
-		fmt.Printf("file %s not exist \n", file)
+		log.Infof("file %s not exist \n", file)
 	}
 
 	_, err = os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			fmt.Printf("create out dir %s \n", path)
+			log.Infof("create out dir %s \n", path)
 			os.MkdirAll(path, os.ModePerm)
 		}
 	}

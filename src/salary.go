@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	// log "github.com/sirupsen/logrus"
 )
 
 type Salary struct {
@@ -132,7 +133,6 @@ func buildSalaries(staffs map[string]Staff, attendances map[string][]Attendance,
 			staff, found := staffs[attendance.Name]
 
 			if !found {
-				fmt.Printf("staff %+v", staffMap)
 				return SalaryBuildError{msg: fmt.Sprintf("Can not find staff named %s in staffs!!", attendance.Name)}
 			}
 
