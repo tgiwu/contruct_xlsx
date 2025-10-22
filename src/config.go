@@ -11,8 +11,7 @@ import (
 )
 
 const CONFIG_PATH = "config/"
-// const CONFIG_COMMON_PATH = "C:/Users/Lenovo/"
-const CONFIG_COMMON_PATH = "/Users/yangzhang/"
+var CONFIG_COMMON_PATH = ""
 
 type config struct {
 	AttendanceFolder             string   `mapstructure:"attendance_folder"`
@@ -44,6 +43,21 @@ var mConf config
 
 func readConfig() {
 
+	configName := "config"
+	switch runtime.GOOS {
+	case "windows":
+		configName += "_win"
+		CONFIG_COMMON_PATH = "C:/Users/Lenovo/"
+	case "linux":
+		configName += "_lin"
+		CONFIG_COMMON_PATH = "/Users/yangzhang/"
+	case "darwin":
+		configName += "_lin"
+		CONFIG_COMMON_PATH = "/Users/yangzhang/"
+	default:
+		fmt.Println("unsupport os ", runtime.GOOS)
+	}
+
 	vip := viper.New()
 	vip.AddConfigPath(CONFIG_COMMON_PATH)
 	vip.SetConfigName("config_common_salary.yaml")
@@ -56,18 +70,6 @@ func readConfig() {
 		} else {
 			fmt.Printf("read config file err, %v \n", err)
 		}
-	}
-
-	configName := "config"
-	switch runtime.GOOS {
-	case "windows":
-		configName += "_win"
-	case "linux":
-		configName += "_lin"
-	case "darwin":
-		configName += "_lin"
-	default:
-		fmt.Println("unsupport os ", runtime.GOOS)
 	}
 
 	bs, err := os.ReadFile(filepath.Join(CONFIG_PATH, configName+".yaml"))

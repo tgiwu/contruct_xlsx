@@ -386,7 +386,7 @@ func CalcDM(staff *Staff, attendance *Attendance, salary *Salary) error {
 		salary.NetPay = int(math.Round(float64(staff.Salary) / float64(attendance.Duty) * float64(attendance.Actal)))
 	//实际工作时间多余应到岗天数，按当月天数折算日工资，加上
 	case diff < 0:
-		salary.NetPay = staff.Salary - (int(math.Round(float64(staff.Salary) / float64(attendance.Duty) * float64(attendance.Actal))))
+		salary.NetPay = staff.Salary - (int(math.Round(float64(staff.Salary) / float64(attendance.Duty) * float64(diff))))
 	//全勤
 	case diff == 0:
 		salary.NetPay = staff.Salary
