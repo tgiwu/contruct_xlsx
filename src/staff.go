@@ -237,6 +237,8 @@ func readStaff(sheet *xlsx.Sheet, staffChan chan Staff, finishChan chan string) 
 			staff.Calc = CalcFQ
 		case "外派":
 			staff.Calc = CalcWP
+		case "梦想山":
+			staff.Calc = CalcDM
 		default:
 			staff.Calc = CalcCommon
 		}

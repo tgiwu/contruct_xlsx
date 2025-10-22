@@ -11,7 +11,8 @@ import (
 )
 
 const CONFIG_PATH = "config/"
-const CONFIG_COMMON_PATH = "C:/Users/Lenovo/"
+// const CONFIG_COMMON_PATH = "C:/Users/Lenovo/"
+const CONFIG_COMMON_PATH = "/Users/yangzhang/"
 
 type config struct {
 	AttendanceFolder             string   `mapstructure:"attendance_folder"`

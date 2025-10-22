@@ -367,11 +367,33 @@ func CalcWP(staff *Staff, attendance *Attendance, salary *Salary) error {
 
 	err = calcAfter(staff, attendance, salary)
 
+	return err
+
+}
+
+//梦想山
+func CalcDM(staff *Staff, attendance *Attendance, salary *Salary) error {
+	err := calcBefore(staff, attendance, salary) 
 	if err != nil {
 		return err
 	}
 
-	return nil
+	diff := attendance.Duty - attendance.Actal
+
+	switch {
+	//正常工作，有请假
+	case diff > 0:
+		salary.NetPay = int(math.Round(float64(staff.Salary) / float64(attendance.Duty) * float64(attendance.Actal)))
+	//实际工作时间多余应到岗天数，按当月天数折算日工资，加上
+	case diff < 0:
+		salary.NetPay = staff.Salary - (int(math.Round(float64(staff.Salary) / float64(attendance.Duty) * float64(attendance.Actal))))
+	//全勤
+	case diff == 0:
+		salary.NetPay = staff.Salary
+	}
+
+	err = calcAfter(staff,attendance,salary)
+	return err
 }
 
 // 通用
