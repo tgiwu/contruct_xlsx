@@ -7,6 +7,7 @@ type TransferInfo struct {
 	Corporation  string
 	CorpAccount  string
 	StaffName    string
+	Payee        string
 	StaffAccount string
 	Salary       int
 	Purpose      string
@@ -35,6 +36,7 @@ func buildTransferInfo(salaryMap map[string]map[string]Salary, staffs map[string
 				Index:        index + salary.Id,
 				StaffAccount: staffs[salary.Name].Account,
 				StaffName:    salary.Name,
+				Payee:        staffs[salary.Name].ToName,
 				Salary:       salary.Account,
 				Corporation:  mConf.CorporationName,
 				CorpAccount:  mConf.CorporationAccount,
