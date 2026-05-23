@@ -3,15 +3,17 @@ package main
 import (
 	"bytes"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"path/filepath"
 	"runtime"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/viper"
 )
 
 const CONFIG_PATH = "config/"
+
 var CONFIG_COMMON_PATH = ""
 
 type config struct {
@@ -20,6 +22,7 @@ type config struct {
 	Ignore                       []string `mapstructure:"ignore"`
 	OutputPath                   string   `mapstructure:"output_path"`
 	FileName                     string   `mapstructure:"file_name"`
+	FileNameExtensions           string   `mapstructure:"file_extensions"`
 	FileTransferName             string   `mapstructure:"file_transfer_name"`
 	Month                        int      `mapstructure:"month"`
 	Year                         int      `mapstructure:"year"`
@@ -160,5 +163,5 @@ func analysisHeader(list []string, resultMap *map[string]string) error {
 func initLog() error {
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.DebugLevel)
-	return  nil
+	return nil
 }

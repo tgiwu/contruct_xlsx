@@ -168,7 +168,8 @@ func buildSalaries(staffs map[string]Staff, attendances map[string][]Attendance,
 			salaryCopy := new(Salary)
 			DeepCopy(salary, salaryCopy)
 			//differential risk
-			if !staff.RiskIgnore && ((staff.Age < 60 && staff.Sex == 1) || (staff.Age < 50 && staff.Sex == 0)) {
+			if strings.HasPrefix(staff.Account, "00000") ||
+				(!staff.RiskIgnore && ((staff.Age < 60 && staff.Sex == 1) || (staff.Age < 50 && staff.Sex == 0))) {
 				items, found := (*salaryRiskMap)[SHEET_NAME_RISK]
 				if !found {
 					items = make(map[string]Salary, 0)
@@ -287,6 +288,12 @@ func calcAfter(staff *Staff, attendance *Attendance, salary *Salary) error {
 	salary.AccountFormula = fmt.Sprintf("=SUM(%s:%s) - %s", pos(salary.Id+1, sumStart), pos(salary.Id+1, sumEnd), pos(salary.Id+1, deduction))
 	salary.Area = staff.Area
 	salary.BackUp = attendance.Backup
+	if strings.HasPrefix(staff.Account, "00000") {
+		if len(salary.BackUp) != 0 {
+			salary.BackUp += ";"
+		}
+		salary.BackUp += "未提供工资卡"
+	}
 
 	if length, found := maxLenForBackupMap[staff.Area]; found {
 		if len(salary.BackUp) > length {
@@ -308,8 +315,10 @@ func CalcFQ(staff *Staff, attendance *Attendance, salary *Salary) error {
 	if err != nil {
 		return err
 	}
+
+	switch {
 	//入职月工作天数不满月，每天100
-	if strings.Contains(attendance.Backup, "入职") && attendance.Actal < attendance.Duty {
+	case strings.Contains(attendance.Backup, "入职") && attendance.Actal < attendance.Duty:
 		//试行逻辑，领导说不清楚怎么发--！，月薪超过3000按日平均工资计算首月工资；未超过3000的按日薪100计算
 		if staff.Salary > 3000 {
 			salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
@@ -317,12 +326,16 @@ func CalcFQ(staff *Staff, attendance *Attendance, salary *Salary) error {
 			salary.NetPay = 100 * attendance.Actal
 		}
 		//超出应出勤的天数每天100
-	} else if attendance.Duty <= attendance.Actal {
+	case attendance.Duty <= attendance.Actal:
 		salary.NetPay = staff.Salary
 		salary.OvertimePay += 100 * (attendance.Actal - attendance.Duty)
-	} else {
+		//工作天数少于15天时按日工资结算
+	case attendance.Actal < 15:
+		salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
+	default:
 		//请假按1天100算
 		salary.NetPay = staff.Salary - (attendance.Duty-attendance.Actal)*100
+
 	}
 	//范崎路加班每天100
 	salary.SpecialPay += int(attendance.Temp_4 * float64(ssMap["Temp_Guard_Cleaner"]))

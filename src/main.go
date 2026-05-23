@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/unidoc/unioffice/common/license"
@@ -91,17 +90,19 @@ func main() {
 	xlsxCount += 1 //salary separate by risk
 	xlsxCount += 1 //transfer info for no risk
 
+	fileName := fmt.Sprintf("%d年%d月工资", mConf.Year, mConf.Month)
 	//start xlsx construction handler
 	go handleXLSXSignal(xlsxC, &xlsxWG, xlsxCount)
 	xlsxWG.Add(xlsxCount)
 
 	//construct salary xlsx normal
-	go constructSalaryXlsx(salaryMap, mConf.FileName, xlsxC, false)
+	go constructSalaryXlsx(salaryMap, fmt.Sprintf("%s.%s", fileName, mConf.FileNameExtensions), xlsxC, false)
 
 	//construct salary xlsx separate by risk
 	go func() {
-		s := strings.Split(mConf.FileName, ".")
-		constructSalaryXlsx(salaryRiskMap, fmt.Sprintf("%s_风险人员.%s", s[0], s[1]), xlsxC, true)
+		// s := strings.Split(mConf.FileName, ".")
+
+		constructSalaryXlsx(salaryRiskMap, fmt.Sprintf("%s_风险人员.%s", fileName, mConf.FileNameExtensions), xlsxC, true)
 	}()
 
 	//construct transfer information xlsx for no risk
