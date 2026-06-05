@@ -20,7 +20,7 @@ type Salary struct {
 	OvertimePay    int    //加班工资
 	SpecialPay     int    //特殊费用
 	Deduction      int    //扣款,社保扣款或罚款
-	Account        int    //合计（不再用于展示）
+	Account        int    //合计，仅用于总览页显示
 	AccountFormula string //合计公式
 	BackUp         string //备注
 	Area           string //区域，用于分组
@@ -33,6 +33,7 @@ type SalaryTotal struct {
 	totalStandard string //应发合计（合计）
 	totalNetPay   string //实发合计
 	totalAccount  string //共计
+	totalPerson   string //person sum
 }
 
 type Overview struct {
@@ -64,7 +65,7 @@ type OverviewItems struct {
 // 根据字数定制备注列宽度
 var maxLenForBackupMap map[string]int
 
-var salaryNextIdMap = make(map[string]int, 0)
+// var salaryNextIdMap = make(map[string]int, 0)
 
 // 工资计算错误，定义负值，便于在excel中标记
 const ERROR_SALARY = -99999
@@ -91,10 +92,144 @@ func (obj *OverviewItems) items() []Overview {
 	return obj.overviewArr
 }
 
-func buildSalaries(staffs map[string]Staff, attendances map[string][]Attendance,
-	salaryMap *map[string]map[string]Salary, salaryRiskMap *map[string]map[string]Salary) error {
+// func buildSalaries(staffs map[string]Staff, attendances map[string][]Attendance,
+// 	salaryMap *map[string]map[string]Salary, salaryRiskMap *map[string]map[string]Salary) error {
+
+// 	keys := make([]string, 0, len(attendances))
+// 	for k := range attendances {
+// 		keys = append(keys, k)
+// 	}
+
+// 	if len(mConf.AreaSortArray) > 0 {
+// 		areaIndexMap := make(map[string]int, len(mConf.AreaSortArray))
+// 		for i, area := range mConf.AreaSortArray {
+// 			areaIndexMap[area] = i
+// 		}
+
+// 		slices.SortFunc(keys, func(x string, y string) int {
+// 			xi, yi := -1, -1
+
+// 			if i, found := areaIndexMap[x]; found {
+// 				xi = i
+// 			}
+
+// 			if i, found := areaIndexMap[y]; found {
+// 				yi = i
+// 			}
+// 			return xi - yi
+// 		})
+// 	}
+// 	for _, key := range keys {
+
+// 		for _, attendance := range attendances[key] {
+
+// 			if len(mConf.Ignore) != 0 {
+// 				for _, ignore := range mConf.Ignore {
+// 					if ignore == attendance.Name {
+// 						//ignore
+// 						continue
+// 					}
+// 				}
+// 			}
+// 			staff, found := staffs[attendance.Name]
+
+// 			if !found {
+// 				return SalaryBuildError{msg: fmt.Sprintf("Can not find staff named %s in staffs!!", attendance.Name)}
+// 			}
+
+// 			salary := new(Salary)
+// 			err := staff.Calc(&staff, &attendance, salary)
+
+// 			//do not differential risk
+// 			if err != nil {
+// 				fmt.Println("build Salary item FAILED ", err.Error())
+// 			} else {
+// 				items, found := (*salaryMap)[attendance.Postion]
+// 				if !found {
+// 					items = make(map[string]Salary, 0)
+// 				}
+
+// 				items[attendance.Name] = *salary
+
+// 				(*salaryMap)[attendance.Postion] = items
+// 			}
+
+// 			sumStart, sumEnd, deduction := 0, 0, 0
+// 			for i, s := range mConf.Headers {
+// 				switch s {
+// 				case "实发工资":
+// 					sumStart = i
+// 				case "特殊费用":
+// 					sumEnd = i
+// 				case "扣款":
+// 					deduction = i
+// 				}
+// 			}
+
+// 			salaryCopy := new(Salary)
+// 			DeepCopy(salary, salaryCopy)
+// 			//differential risk
+// 			if strings.HasPrefix(staff.Account, "00000") ||
+// 				(!staff.RiskIgnore && ((staff.Age < 60 && staff.Sex == 1) || (staff.Age < 50 && staff.Sex == 0))) {
+// 				items, found := (*salaryRiskMap)[SHEET_NAME_RISK]
+// 				if !found {
+// 					items = make(map[string]Salary, 0)
+// 					salaryNextIdMap[SHEET_NAME_RISK] = 1
+// 				}
+// 				salaryCopy.Id = salaryNextIdMap[SHEET_NAME_RISK]
+// 				//recalc account formula
+// 				salaryCopy.AccountFormula = fmt.Sprintf("=SUM(%s:%s) - %s", pos(salaryCopy.Id+1, sumStart),
+// 					pos(salaryCopy.Id+1, sumEnd), pos(salaryCopy.Id+1, deduction))
+// 				items[attendance.Name] = *salaryCopy
+
+// 				(*salaryRiskMap)[SHEET_NAME_RISK] = items
+// 				salaryNextIdMap[SHEET_NAME_RISK]++
+// 			} else {
+// 				items, found := (*salaryRiskMap)[SHEET_NAME_NO_RISK]
+// 				if !found {
+// 					items = make(map[string]Salary, 0)
+// 					salaryNextIdMap[SHEET_NAME_NO_RISK] = 1
+// 				}
+// 				salaryCopy.Id = salaryNextIdMap[SHEET_NAME_NO_RISK]
+// 				//recalc account formula
+// 				salaryCopy.AccountFormula = fmt.Sprintf("=SUM(%s:%s) - %s", pos(salaryCopy.Id+1, sumStart),
+// 					pos(salaryCopy.Id+1, sumEnd), pos(salaryCopy.Id+1, deduction))
+
+// 				items[attendance.Name] = *salaryCopy
+
+// 				(*salaryRiskMap)[SHEET_NAME_NO_RISK] = items
+// 				salaryNextIdMap[SHEET_NAME_NO_RISK]++
+// 			}
+// 		}
+// 	}
+
+// 	return nil
+// }
+
+func buildSalaries2(staffs map[string]Staff, attendances map[string][]Attendance,
+	salaryMap *map[string]map[string]Salary, salaryRiskMap *map[string][]Salary) error {
 
 	keys := make([]string, 0, len(attendances))
+
+	//risk table overview items,first risk, second no risk
+	overviewRows := make([]Salary, len(attendances)+2)
+	//cache salary account by area
+	overviewRowsForArea := make(map[string]Salary, len(attendances))
+
+	//table area construct sum Formula
+	indexStandard, indexNetPay, indexAccount := 0, 0, 0
+
+	for i, s := range mConf.Headers {
+		switch s {
+		case "应发工资":
+			indexStandard = i
+		case "实发工资":
+			indexNetPay = i
+		case "合计":
+			indexAccount = i
+		}
+	}
+
 	for k := range attendances {
 		keys = append(keys, k)
 	}
@@ -118,7 +253,7 @@ func buildSalaries(staffs map[string]Staff, attendances map[string][]Attendance,
 			return xi - yi
 		})
 	}
-	for _, key := range keys {
+	for index, key := range keys {
 
 		for _, attendance := range attendances[key] {
 
@@ -151,6 +286,28 @@ func buildSalaries(staffs map[string]Staff, attendances map[string][]Attendance,
 				items[attendance.Name] = *salary
 
 				(*salaryMap)[attendance.Postion] = items
+
+				var overviewItem Salary
+				if item, found := overviewRowsForArea[attendance.Postion]; found {
+					overviewItem = item
+				} else {
+					overviewItem = Salary{
+						Area: attendance.Postion,
+						Name: "合计",
+					}
+				}
+
+				overviewItem.totalStandard = fmt.Sprintf("=SUM(%s:%s)", pos(2, indexStandard), pos(len(items), indexStandard))
+				overviewItem.totalNetPay = fmt.Sprintf("=SUM(%s:%s)", pos(2, indexNetPay), pos(len(items), indexNetPay))
+				overviewItem.totalAccount = fmt.Sprintf("=SUM(%s:%s)", pos(2, indexAccount), pos(len(items), indexAccount))
+				overviewItem.Account += salary.Account
+
+				overviewRowsForArea[attendance.Postion] = overviewItem
+				if len(overviewRows[index+2].Area) == 0 {
+					overviewRows[index+2].Name = attendance.Postion
+				}
+				//overview
+				overviewRows[index+2].Account += salary.Account
 			}
 
 			sumStart, sumEnd, deduction := 0, 0, 0
@@ -172,34 +329,71 @@ func buildSalaries(staffs map[string]Staff, attendances map[string][]Attendance,
 				(!staff.RiskIgnore && ((staff.Age < 60 && staff.Sex == 1) || (staff.Age < 50 && staff.Sex == 0))) {
 				items, found := (*salaryRiskMap)[SHEET_NAME_RISK]
 				if !found {
-					items = make(map[string]Salary, 0)
-					salaryNextIdMap[SHEET_NAME_RISK] = 1
+					items = make([]Salary, 0)
 				}
-				salaryCopy.Id = salaryNextIdMap[SHEET_NAME_RISK]
+				salaryCopy.Id = staff.RowId
 				//recalc account formula
 				salaryCopy.AccountFormula = fmt.Sprintf("=SUM(%s:%s) - %s", pos(salaryCopy.Id+1, sumStart),
 					pos(salaryCopy.Id+1, sumEnd), pos(salaryCopy.Id+1, deduction))
-				items[attendance.Name] = *salaryCopy
+				items = append(items, *salaryCopy)
 
 				(*salaryRiskMap)[SHEET_NAME_RISK] = items
-				salaryNextIdMap[SHEET_NAME_RISK]++
+
+				if len(overviewRows[0].Name) == 0 {
+					overviewRows[0].Name = SHEET_NAME_RISK
+				}
+				overviewRows[0].Account += salaryCopy.Account
 			} else {
 				items, found := (*salaryRiskMap)[SHEET_NAME_NO_RISK]
 				if !found {
-					items = make(map[string]Salary, 0)
-					salaryNextIdMap[SHEET_NAME_NO_RISK] = 1
+					items = make([]Salary, 0)
 				}
-				salaryCopy.Id = salaryNextIdMap[SHEET_NAME_NO_RISK]
+				salaryCopy.Id = staff.RowId
 				//recalc account formula
 				salaryCopy.AccountFormula = fmt.Sprintf("=SUM(%s:%s) - %s", pos(salaryCopy.Id+1, sumStart),
 					pos(salaryCopy.Id+1, sumEnd), pos(salaryCopy.Id+1, deduction))
 
-				items[attendance.Name] = *salaryCopy
+				items = append(items, *salaryCopy)
 
 				(*salaryRiskMap)[SHEET_NAME_NO_RISK] = items
-				salaryNextIdMap[SHEET_NAME_NO_RISK]++
+				if len(overviewRows[1].Name) == 0 {
+					overviewRows[1].Name = SHEET_NAME_NO_RISK
+				}
+				overviewRows[1].Account += salaryCopy.Account
 			}
 		}
+
+		for key := range *salaryMap {
+			(*salaryMap)[key]["合计"] = overviewRowsForArea[key]
+		}
+	}
+
+	sumRow := Salary{
+		Name: "合计",
+	}
+
+	totalAccountIndex, totalPersonIndex := 0, 0
+	for i, s := range mConf.OverviewHeader {
+		switch s {
+		case "总计费用":
+			totalAccountIndex = i
+		case "发放人数":
+			totalPersonIndex = i
+		}
+	}
+
+	sumRow.totalAccount = fmt.Sprintf("=SUM(%s:%s)", pos(4, totalAccountIndex), pos(len(overviewRows), totalAccountIndex))
+	sumRow.totalPerson = fmt.Sprintf("=SUM(%s:%s)", pos(4, totalPersonIndex), pos(len(overviewRows), totalPersonIndex))
+	for i := 2; i < len(overviewRows); i++ {
+		sumRow.totalPerson += overviewRows[i].totalPerson
+	}
+	overviewRows = append(overviewRows, sumRow)
+
+	// add overview row
+	(*salaryRiskMap)["总览"] = overviewRows
+
+	for key := range *salaryMap {
+		(*salaryMap)[key]["合计"] = overviewRowsForArea[key]
 	}
 
 	return nil

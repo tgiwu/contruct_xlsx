@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/tealeg/xlsx/v3"
-	// log "github.com/sirupsen/logrus"
 )
 
+const COL_STAFF_ROW_ID = "序号"
 const COL_STAFF_NAME = "人员姓名"
 const COL_STAFF_SALARY = "薪资"
 const COL_STAFF_QUIT_TIME = "离职时间"
@@ -38,6 +38,7 @@ const FINISH_SIGNAL_SALARY_STANDARDS_TEMP = "salary standards finish!!"
 const FINISH_SIGNAL_SALARY_STANDARDS_POST = "salary standards post finish"
 
 type Staff struct {
+	RowId      int         //staff row id
 	Name       string      //姓名
 	Salary     int         //工资
 	Account    string      //收款账号
@@ -311,6 +312,8 @@ func visitRow(row *xlsx.Row, headerMap *map[int]string, staff *Staff) {
 				(*headerMap)[i] = "IdCard"
 			case COL_STAFF_IGNORE_RISK:
 				(*headerMap)[i] = "RiskIgnore"
+			case COL_STAFF_ROW_ID:
+				(*headerMap)[i] = "RowId"
 			}
 		} else {
 			val, _ := strconv.Atoi(str)

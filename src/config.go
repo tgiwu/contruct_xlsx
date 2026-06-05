@@ -124,7 +124,7 @@ func analysisHeader(list []string, resultMap *map[string]string) error {
 		for _, header := range list {
 			switch header {
 			case "序号":
-				(*resultMap)[header] = "Id"
+				(*resultMap)[header] = "RowId"
 			case "姓名":
 				(*resultMap)[header] = "Name"
 			case "应出勤":

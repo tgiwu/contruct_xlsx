@@ -1,5 +1,6 @@
 ./attendance/
 ./output/
 ./output/*
+./src/*.exe
 
 *.xlsx

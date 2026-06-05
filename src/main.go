@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/unidoc/unioffice/common/license"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -21,6 +19,8 @@ var salaryMap = make(map[string]map[string]Salary)
 // area to (name to salary) with risk area staff
 var salaryRiskMap = make(map[string]map[string]Salary)
 
+var salaryRiskMap2 = make(map[string][]Salary)
+
 // temp
 var ssMap = make(map[string]int)
 
@@ -31,13 +31,13 @@ func main() {
 
 	readConfig()
 
-	err := license.SetMeteredKey(mConf.MeteredKey)
-	if err != nil {
-		panic(err)
-	}
+	// err := license.SetMeteredKey(mConf.MeteredKey)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	var filePaths *[]string = new([]string)
-	err = listXlsxFile(filePaths)
+	err := listXlsxFile(filePaths)
 
 	if err != nil {
 		panic(err)
@@ -75,7 +75,7 @@ func main() {
 
 	log.Infoln("--------------------read finish--------------------")
 
-	err = buildSalaries(staffMap, attMap, &salaryMap, &salaryRiskMap)
+	err = buildSalaries2(staffMap, attMap, &salaryMap, &salaryRiskMap2)
 
 	if err != nil {
 		log.Panic(" build salary map failed " + err.Error())
@@ -96,14 +96,10 @@ func main() {
 	xlsxWG.Add(xlsxCount)
 
 	//construct salary xlsx normal
-	go constructSalaryXlsx(salaryMap, fmt.Sprintf("%s.%s", fileName, mConf.FileNameExtensions), xlsxC, false)
+	go constructSalaryXlsx(salaryMap, fmt.Sprintf("%s.%s", fileName, mConf.FileNameExtensions), xlsxC)
 
 	//construct salary xlsx separate by risk
-	go func() {
-		// s := strings.Split(mConf.FileName, ".")
-
-		constructSalaryXlsx(salaryRiskMap, fmt.Sprintf("%s_风险人员.%s", fileName, mConf.FileNameExtensions), xlsxC, true)
-	}()
+	// go constructSalaryRiskXlsx(salaryRiskMap2, fmt.Sprintf("%s_不分区域.%s", fileName, mConf.FileNameExtensions), xlsxC)
 
 	//construct transfer information xlsx for no risk
 	go func() {
