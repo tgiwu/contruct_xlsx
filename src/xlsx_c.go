@@ -25,8 +25,6 @@ const TYPE_ROW_NORMAL = 2
 const TYPE_ROW_NORMAL_GREY = 3
 const TYPE_ROW_TOTAL = 4
 
-var styleM map[int]int
-
 var (
 	styleCellTitle  int
 	styleCellHeader int
@@ -166,7 +164,7 @@ func constructSalaryRiskXlsx(salaryMap map[string][]Salary, fileName string, fin
 	//contruct single table
 	for _, key := range keys {
 		if key == "总览" {
-			constructOverviewSheet(excel, salaryRiskMap2[key])
+			constructOverviewSheet(excel, salaryRiskMap[key])
 		} else {
 			constructSalarySheet(excel, key, salaryMap[key])
 		}

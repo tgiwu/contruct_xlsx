@@ -17,9 +17,7 @@ var staffMap = make(map[string]Staff)
 var salaryMap = make(map[string][]Salary)
 
 // area to (name to salary) with risk area staff
-var salaryRiskMap = make(map[string]map[string]Salary)
-
-var salaryRiskMap2 = make(map[string][]Salary)
+var salaryRiskMap = make(map[string][]Salary)
 
 // temp
 var ssMap = make(map[string]int)
@@ -70,7 +68,7 @@ func main() {
 
 	log.Infoln("--------------------read finish--------------------")
 
-	err = buildSalaries2(staffMap, attMap, &salaryMap, &salaryRiskMap2)
+	err = buildSalaries2(staffMap, attMap, &salaryMap, &salaryRiskMap)
 
 	if err != nil {
 		log.Panic(" build salary map failed " + err.Error())
@@ -94,12 +92,12 @@ func main() {
 	go constructSalaryXlsx(salaryMap, fmt.Sprintf("%s.%s", fileName, mConf.FileNameExtensions), xlsxC)
 
 	//construct salary xlsx separate by risk
-	go constructSalaryRiskXlsx(salaryRiskMap2, fmt.Sprintf("%s_不分区域.%s", fileName, mConf.FileNameExtensions), xlsxC)
+	go constructSalaryRiskXlsx(salaryRiskMap, fmt.Sprintf("%s_不分区域.%s", fileName, mConf.FileNameExtensions), xlsxC)
 
 	//construct transfer information xlsx for no risk
 	go func() {
 		transferInfos := new([]TransferInfo)
-		buildTransferInfo(salaryRiskMap2, staffMap, transferInfos)
+		buildTransferInfo(salaryRiskMap, staffMap, transferInfos)
 		constructTransferInfoXlsx(transferInfos, mConf.FileTransferName, xlsxC)
 	}()
 	xlsxWG.Wait()

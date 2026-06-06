@@ -145,22 +145,6 @@ func delFileIfExist(path string, name string) {
 // 	}
 // }
 
-func sortSalaryById(salaries map[string]Salary) []Salary {
-	if len(salaries) == 0 {
-		return make([]Salary, 0)
-	}
-
-	salariesList := make([]Salary, len(salaries))
-
-	for _, salary := range salaries {
-		if salary.Id > -1 {
-			salariesList[salary.Id-1] = salary
-		}
-	}
-
-	return salariesList
-}
-
 // 计算表格位置，坐标由0开始
 func pos(row int, col int) string {
 	first := int('A')
