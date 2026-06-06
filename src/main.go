@@ -14,7 +14,7 @@ var attMap = make(map[string][]Attendance)
 var staffMap = make(map[string]Staff)
 
 // area to (name to salary)
-var salaryMap = make(map[string]map[string]Salary)
+var salaryMap = make(map[string][]Salary)
 
 // area to (name to salary) with risk area staff
 var salaryRiskMap = make(map[string]map[string]Salary)
@@ -87,8 +87,8 @@ func main() {
 
 	xlsxCount := 0
 	xlsxCount += 1 //salsry separate by area
-	xlsxCount += 1 //salary separate by risk
-	xlsxCount += 1 //transfer info for no risk
+	// xlsxCount += 1 //salary separate by risk
+	// xlsxCount += 1 //transfer info for no risk
 
 	fileName := fmt.Sprintf("%d年%d月工资", mConf.Year, mConf.Month)
 	//start xlsx construction handler
@@ -102,11 +102,11 @@ func main() {
 	// go constructSalaryRiskXlsx(salaryRiskMap2, fmt.Sprintf("%s_不分区域.%s", fileName, mConf.FileNameExtensions), xlsxC)
 
 	//construct transfer information xlsx for no risk
-	go func() {
-		transferInfos := new([]TransferInfo)
-		buildTransferInfo(salaryRiskMap, staffMap, transferInfos)
-		constructTransferInfoXlsx(transferInfos, mConf.FileTransferName, xlsxC)
-	}()
+	// go func() {
+	// 	transferInfos := new([]TransferInfo)
+	// 	buildTransferInfo(salaryRiskMap, staffMap, transferInfos)
+	// 	constructTransferInfoXlsx(transferInfos, mConf.FileTransferName, xlsxC)
+	// }()
 	xlsxWG.Wait()
 
 	log.Infoln("all finish")

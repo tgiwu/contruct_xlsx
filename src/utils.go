@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -160,7 +161,7 @@ func sortSalaryById(salaries map[string]Salary) []Salary {
 	return salariesList
 }
 
-//计算表格位置，坐标由0开始
+// 计算表格位置，坐标由0开始
 func pos(row int, col int) string {
 	first := int('A')
 
@@ -169,7 +170,7 @@ func pos(row int, col int) string {
 	}
 
 	if col < 0 {
-		return fmt.Sprint(row + 1)
+		return fmt.Sprint(row)
 	}
 
 	return fmt.Sprintf("%s%d", string(byte(first+col)), row+1)

@@ -12,6 +12,7 @@ import (
 
 type Salary struct {
 	Id             int    //序号
+	StaffId        int    //staff Id for sort
 	Name           string //姓名
 	Should         int    //应出勤
 	Actual         int    //实出勤
@@ -30,10 +31,11 @@ type Salary struct {
 }
 
 type SalaryTotal struct {
-	totalStandard string //应发合计（合计）
-	totalNetPay   string //实发合计
-	totalAccount  string //共计
-	totalPerson   string //person sum
+	TotalStandard string //应发合计（合计）Formula
+	TotalNetPay   string //实发合计 Formula
+	TotalAccount  string //共计 Formula
+	TotalPerson   string //person sum Formula
+	TotalP        int    //person sum
 }
 
 type Overview struct {
@@ -207,14 +209,14 @@ func (obj *OverviewItems) items() []Overview {
 // }
 
 func buildSalaries2(staffs map[string]Staff, attendances map[string][]Attendance,
-	salaryMap *map[string]map[string]Salary, salaryRiskMap *map[string][]Salary) error {
+	salaryMap *map[string][]Salary, salaryRiskMap *map[string][]Salary) error {
 
 	keys := make([]string, 0, len(attendances))
 
 	//risk table overview items,first risk, second no risk
-	overviewRows := make([]Salary, len(attendances)+2)
+	overviewAreaRows := make([]Salary, len(attendances)+2)
 	//cache salary account by area
-	overviewRowsForArea := make(map[string]Salary, len(attendances))
+	areaToSumRowMap := make(map[string]Salary, len(attendances))
 
 	//table area construct sum Formula
 	indexStandard, indexNetPay, indexAccount := 0, 0, 0
@@ -271,7 +273,7 @@ func buildSalaries2(staffs map[string]Staff, attendances map[string][]Attendance
 				return SalaryBuildError{msg: fmt.Sprintf("Can not find staff named %s in staffs!!", attendance.Name)}
 			}
 
-			salary := new(Salary)
+			salary := new(Salary{StaffId: staff.RowId})
 			err := staff.Calc(&staff, &attendance, salary)
 
 			//do not differential risk
@@ -280,34 +282,36 @@ func buildSalaries2(staffs map[string]Staff, attendances map[string][]Attendance
 			} else {
 				items, found := (*salaryMap)[attendance.Postion]
 				if !found {
-					items = make(map[string]Salary, 0)
+					items = make([]Salary, 0)
 				}
 
-				items[attendance.Name] = *salary
+				items = append(items, *salary)
 
 				(*salaryMap)[attendance.Postion] = items
 
-				var overviewItem Salary
-				if item, found := overviewRowsForArea[attendance.Postion]; found {
-					overviewItem = item
+				var sumRow Salary
+				if item, found := areaToSumRowMap[attendance.Postion]; found {
+					sumRow = item
 				} else {
-					overviewItem = Salary{
-						Area: attendance.Postion,
-						Name: "合计",
+					sumRow = Salary{
+						Area:    attendance.Postion,
+						Name:    "合计",
+						StaffId: 999,
 					}
 				}
 
-				overviewItem.totalStandard = fmt.Sprintf("=SUM(%s:%s)", pos(2, indexStandard), pos(len(items), indexStandard))
-				overviewItem.totalNetPay = fmt.Sprintf("=SUM(%s:%s)", pos(2, indexNetPay), pos(len(items), indexNetPay))
-				overviewItem.totalAccount = fmt.Sprintf("=SUM(%s:%s)", pos(2, indexAccount), pos(len(items), indexAccount))
-				overviewItem.Account += salary.Account
+				sumRow.TotalStandard = fmt.Sprintf("=SUM(%s:%s)", pos(2, indexStandard), pos(len(items)+1, indexStandard))
+				sumRow.TotalNetPay = fmt.Sprintf("=SUM(%s:%s)", pos(2, indexNetPay), pos(len(items)+1, indexNetPay))
+				sumRow.TotalAccount = fmt.Sprintf("=SUM(%s:%s)", pos(2, indexAccount), pos(len(items)+1, indexAccount))
+				sumRow.Account += salary.Account
+				sumRow.TotalP += 1
 
-				overviewRowsForArea[attendance.Postion] = overviewItem
-				if len(overviewRows[index+2].Area) == 0 {
-					overviewRows[index+2].Name = attendance.Postion
+				areaToSumRowMap[attendance.Postion] = sumRow
+				if len(overviewAreaRows[index+2].Area) == 0 {
+					overviewAreaRows[index+2].Name = attendance.Postion
 				}
 				//overview
-				overviewRows[index+2].Account += salary.Account
+				overviewAreaRows[index+2].Account += salary.Account
 			}
 
 			sumStart, sumEnd, deduction := 0, 0, 0
@@ -339,10 +343,10 @@ func buildSalaries2(staffs map[string]Staff, attendances map[string][]Attendance
 
 				(*salaryRiskMap)[SHEET_NAME_RISK] = items
 
-				if len(overviewRows[0].Name) == 0 {
-					overviewRows[0].Name = SHEET_NAME_RISK
+				if len(overviewAreaRows[0].Name) == 0 {
+					overviewAreaRows[0].Name = SHEET_NAME_RISK
 				}
-				overviewRows[0].Account += salaryCopy.Account
+				overviewAreaRows[0].Account += salaryCopy.Account
 			} else {
 				items, found := (*salaryRiskMap)[SHEET_NAME_NO_RISK]
 				if !found {
@@ -356,22 +360,49 @@ func buildSalaries2(staffs map[string]Staff, attendances map[string][]Attendance
 				items = append(items, *salaryCopy)
 
 				(*salaryRiskMap)[SHEET_NAME_NO_RISK] = items
-				if len(overviewRows[1].Name) == 0 {
-					overviewRows[1].Name = SHEET_NAME_NO_RISK
+				if len(overviewAreaRows[1].Name) == 0 {
+					overviewAreaRows[1].Name = SHEET_NAME_NO_RISK
 				}
-				overviewRows[1].Account += salaryCopy.Account
+				overviewAreaRows[1].Account += salaryCopy.Account
 			}
 		}
 
-		for key := range *salaryMap {
-			(*salaryMap)[key]["合计"] = overviewRowsForArea[key]
-		}
 	}
 
-	sumRow := Salary{
+	for key := range *salaryMap {
+		list := (*salaryMap)[key]
+		slices.SortFunc(list, func(s1, s2 Salary) int {
+			return s1.StaffId - s2.StaffId
+		})
+		list = append(list, areaToSumRowMap[key])
+
+		(*salaryMap)[key] = list
+
+	}
+
+	for key := range *salaryRiskMap {
+		list := (*salaryRiskMap)[key]
+		slices.SortFunc(list, func(s1, s2 Salary) int {
+			return s1.StaffId - s2.StaffId
+		})
+
+		riskSumRow := Salary{StaffId: 999,
+			Name: "合计",
+		}
+
+		riskSumRow.TotalStandard = fmt.Sprintf("=SUM(%s:%s)", pos(2, indexStandard), pos(len(list)+1, indexStandard))
+		riskSumRow.TotalNetPay = fmt.Sprintf("=SUM(%s:%s)", pos(2, indexNetPay), pos(len(list)+1, indexNetPay))
+		riskSumRow.TotalAccount = fmt.Sprintf("=SUM(%s:%s)", pos(2, indexAccount), pos(len(list)+1, indexAccount))
+		riskSumRow.TotalP = len(list)
+		list = append((*salaryRiskMap)[key], riskSumRow)
+
+		(*salaryRiskMap)[key] = list
+	}
+
+	overviewSumRow := Salary{
 		Name: "合计",
 	}
-
+	// person sum Formula
 	totalAccountIndex, totalPersonIndex := 0, 0
 	for i, s := range mConf.OverviewHeader {
 		switch s {
@@ -382,19 +413,16 @@ func buildSalaries2(staffs map[string]Staff, attendances map[string][]Attendance
 		}
 	}
 
-	sumRow.totalAccount = fmt.Sprintf("=SUM(%s:%s)", pos(4, totalAccountIndex), pos(len(overviewRows), totalAccountIndex))
-	sumRow.totalPerson = fmt.Sprintf("=SUM(%s:%s)", pos(4, totalPersonIndex), pos(len(overviewRows), totalPersonIndex))
-	for i := 2; i < len(overviewRows); i++ {
-		sumRow.totalPerson += overviewRows[i].totalPerson
+	overviewSumRow.TotalAccount = fmt.Sprintf("=SUM(%s:%s)", pos(4, totalAccountIndex), pos(len(overviewAreaRows)+1, totalAccountIndex))
+	overviewSumRow.TotalPerson = fmt.Sprintf("=SUM(%s:%s)", pos(4, totalPersonIndex), pos(len(overviewAreaRows)+1, totalPersonIndex))
+	// person sum
+	for i := 2; i < len(overviewAreaRows); i++ {
+		overviewSumRow.TotalP += overviewAreaRows[i].TotalP
 	}
-	overviewRows = append(overviewRows, sumRow)
+	overviewAreaRows = append(overviewAreaRows, overviewSumRow)
 
-	// add overview row
-	(*salaryRiskMap)["总览"] = overviewRows
-
-	for key := range *salaryMap {
-		(*salaryMap)[key]["合计"] = overviewRowsForArea[key]
-	}
+	// add account row to overview
+	(*salaryRiskMap)["总览"] = overviewAreaRows
 
 	return nil
 }
