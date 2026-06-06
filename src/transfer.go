@@ -13,7 +13,7 @@ type TransferInfo struct {
 	Purpose      string
 }
 
-func buildTransferInfo(salaryMap map[string]map[string]Salary, staffs map[string]Staff, transferInfos *[]TransferInfo) error {
+func buildTransferInfo(salaryMap map[string][]Salary, staffs map[string]Staff, transferInfos *[]TransferInfo) error {
 	index := 0
 
 	keyList := make([]string, 0)
@@ -32,6 +32,10 @@ func buildTransferInfo(salaryMap map[string]map[string]Salary, staffs map[string
 		}
 
 		for _, salary := range salaries {
+			// sumRow for table staffId 999; item for overview staffId -1
+			if salary.StaffId == 999 || salary.StaffId == -1 {
+				continue
+			}
 			transInfo := TransferInfo{
 				Index:        index + salary.Id,
 				StaffAccount: staffs[salary.Name].Account,

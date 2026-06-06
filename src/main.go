@@ -31,11 +31,6 @@ func main() {
 
 	readConfig()
 
-	// err := license.SetMeteredKey(mConf.MeteredKey)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
 	var filePaths *[]string = new([]string)
 	err := listXlsxFile(filePaths)
 
@@ -87,8 +82,8 @@ func main() {
 
 	xlsxCount := 0
 	xlsxCount += 1 //salsry separate by area
-	// xlsxCount += 1 //salary separate by risk
-	// xlsxCount += 1 //transfer info for no risk
+	xlsxCount += 1 //salary separate by risk
+	xlsxCount += 1 //transfer info for no risk
 
 	fileName := fmt.Sprintf("%d年%d月工资", mConf.Year, mConf.Month)
 	//start xlsx construction handler
@@ -99,14 +94,14 @@ func main() {
 	go constructSalaryXlsx(salaryMap, fmt.Sprintf("%s.%s", fileName, mConf.FileNameExtensions), xlsxC)
 
 	//construct salary xlsx separate by risk
-	// go constructSalaryRiskXlsx(salaryRiskMap2, fmt.Sprintf("%s_不分区域.%s", fileName, mConf.FileNameExtensions), xlsxC)
+	go constructSalaryRiskXlsx(salaryRiskMap2, fmt.Sprintf("%s_不分区域.%s", fileName, mConf.FileNameExtensions), xlsxC)
 
 	//construct transfer information xlsx for no risk
-	// go func() {
-	// 	transferInfos := new([]TransferInfo)
-	// 	buildTransferInfo(salaryRiskMap, staffMap, transferInfos)
-	// 	constructTransferInfoXlsx(transferInfos, mConf.FileTransferName, xlsxC)
-	// }()
+	go func() {
+		transferInfos := new([]TransferInfo)
+		buildTransferInfo(salaryRiskMap2, staffMap, transferInfos)
+		constructTransferInfoXlsx(transferInfos, mConf.FileTransferName, xlsxC)
+	}()
 	xlsxWG.Wait()
 
 	log.Infoln("all finish")

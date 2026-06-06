@@ -148,9 +148,9 @@ func analysisHeader(list []string, resultMap *map[string]string) error {
 			case "区域":
 				(*resultMap)[header] = "Area"
 			case "发放人数":
-				(*resultMap)[header] = "NumOfStaff"
+				(*resultMap)[header] = "TotalP"
 			case "总计费用":
-				(*resultMap)[header] = "AccountTotal"
+				(*resultMap)[header] = "TotalA"
 			default:
 				return MyError{fmt.Sprintf("UNKNOWN HEADER named %s \n", header)}
 
