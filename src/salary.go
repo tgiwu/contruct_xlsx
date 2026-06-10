@@ -90,18 +90,20 @@ func buildSalaries2(staffs map[string]Staff, attendances map[string][]Attendance
 	areaToSumRowMap := make(map[string]Salary, len(attendances))
 
 	//table area construct sum Formula
-	indexStandard, indexNetPay, indexAccount := 0, 0, 0
-
-	for i, s := range mConf.Headers {
-		switch s {
-		case "应发工资":
-			indexStandard = i
-		case "实发工资":
-			indexNetPay = i
-		case "合计":
-			indexAccount = i
-		}
-	}
+	// indexStandard, indexNetPay, indexAccount := 0, 0, 0
+	indexStandard := slices.Index(mConf.Headers, "应发工资")
+	indexNetPay := slices.Index(mConf.Headers, "实发工资")
+	indexAccount := slices.Index(mConf.Headers, "合计")
+	// for i, s := range mConf.Headers {
+	// 	switch s {
+	// 	case "应发工资":
+	// 		indexStandard = i
+	// 	case "实发工资":
+	// 		indexNetPay = i
+	// 	case "合计":
+	// 		indexAccount = i
+	// 	}
+	// }
 
 	for k := range attendances {
 		keys = append(keys, k)
@@ -279,15 +281,17 @@ func buildSalaries2(staffs map[string]Staff, attendances map[string][]Attendance
 		StaffId: 999,
 	}
 	// person sum Formula
-	totalAccountIndex, totalPersonIndex := 0, 0
-	for i, s := range mConf.OverviewHeader {
-		switch s {
-		case "总计费用":
-			totalAccountIndex = i
-		case "发放人数":
-			totalPersonIndex = i
-		}
-	}
+	// totalAccountIndex, totalPersonIndex := 0, 0
+	totalAccountIndex := slices.Index(mConf.OverviewHeader, "总计费用")
+	totalPersonIndex := slices.Index(mConf.OverviewHeader, "发放人数")
+	// for i, s := range mConf.OverviewHeader {
+	// 	switch s {
+	// 	case "总计费用":
+	// 		totalAccountIndex = i
+	// 	case "发放人数":
+	// 		totalPersonIndex = i
+	// 	}
+	// }
 
 	overviewSumRow.TotalAccount = fmt.Sprintf("=SUM(%s:%s)", pos(2, totalAccountIndex), pos(len(overviewAreaRows)+1, totalAccountIndex))
 	overviewSumRow.TotalPerson = fmt.Sprintf("=SUM(%s:%s)", pos(2, totalPersonIndex), pos(len(overviewAreaRows)+1, totalPersonIndex))
@@ -301,17 +305,22 @@ func buildSalaries2(staffs map[string]Staff, attendances map[string][]Attendance
 
 // after sort recalc account formula
 func recalcAccountRowFormula(items *[]Salary, start int) {
-	sumStart, sumEnd, deduction := 0, 0, 0
-	for i, s := range mConf.Headers {
-		switch s {
-		case "实发工资":
-			sumStart = i
-		case "特殊费用":
-			sumEnd = i
-		case "扣款":
-			deduction = i
-		}
-	}
+
+	sumStart := slices.Index(mConf.Headers, "实发工资")
+	sumEnd := slices.Index(mConf.Headers, "特殊费用")
+	deduction := slices.Index(mConf.Headers, "扣款")
+
+	// sumStart, sumEnd, deduction := 0, 0, 0
+	// for i, s := range mConf.Headers {
+	// 	switch s {
+	// 	case "实发工资":
+	// 		sumStart = i
+	// 	case "特殊费用":
+	// 		sumEnd = i
+	// 	case "扣款":
+	// 		deduction = i
+	// 	}
+	// }
 
 	for i := range *items {
 		(*items)[i].AccountFormula = fmt.Sprintf("=SUM(%s:%s) - %s", pos(i+start, sumStart),
@@ -387,17 +396,20 @@ func calcAfter(staff *Staff, attendance *Attendance, salary *Salary) error {
 	//已替换为公式
 	salary.Account = salary.NetPay + salary.OvertimePay + salary.SpecialPay - salary.Deduction
 
-	sumStart, sumEnd, deduction := 0, 0, 0
-	for i, s := range mConf.Headers {
-		switch s {
-		case "实发工资":
-			sumStart = i
-		case "特殊费用":
-			sumEnd = i
-		case "扣款":
-			deduction = i
-		}
-	}
+	sumStart := slices.Index(mConf.Headers, "实发工资")
+	sumEnd := slices.Index(mConf.Headers, "特殊费用")
+	deduction := slices.Index(mConf.Headers, "扣款")
+	// sumStart, sumEnd, deduction := 0, 0, 0
+	// for i, s := range mConf.Headers {
+	// 	switch s {
+	// 	case "实发工资":
+	// 		sumStart = i
+	// 	case "特殊费用":
+	// 		sumEnd = i
+	// 	case "扣款":
+	// 		deduction = i
+	// 	}
+	// }
 
 	salary.AccountFormula = fmt.Sprintf("=SUM(%s:%s) - %s", pos(salary.Id+1, sumStart), pos(salary.Id+1, sumEnd), pos(salary.Id+1, deduction))
 	salary.Area = staff.Area

@@ -235,15 +235,17 @@ func fillTotalRisk(excel *excelize.File, sheetName string, item Salary, row int)
 	excel.SetCellValue(sheetName, pos(row, 0), item.Area)
 	excel.SetCellStyle(sheetName, pos(row, 0), pos(row, 1), styleCellTotal)
 
-	personSumIndex, accountSumIndex := -1, -1
-	for index, name := range mConf.OverviewHeader {
-		switch name {
-		case "发放人数":
-			personSumIndex = index
-		case "总计费用":
-			accountSumIndex = index
-		}
-	}
+	personSumIndex := slices.Index(mConf.OverviewHeader, "发放人数")
+	accountSumIndex := slices.Index(mConf.OverviewHeader, "总计费用")
+	// personSumIndex, accountSumIndex := -1, -1
+	// for index, name := range mConf.OverviewHeader {
+	// 	switch name {
+	// 	case "发放人数":
+	// 		personSumIndex = index
+	// 	case "总计费用":
+	// 		accountSumIndex = index
+	// 	}
+	// }
 
 	if personSumIndex == -1 || accountSumIndex == -1 {
 		panic("can not locate column total!")
