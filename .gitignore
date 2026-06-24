@@ -2,5 +2,8 @@
 ./output/
 ./output/*
 ./src/*.exe
+.vscode
+go.mod
+go.sum
 
 *.xlsx

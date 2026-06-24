@@ -89,10 +89,10 @@ func main() {
 	xlsxWG.Add(xlsxCount)
 
 	//construct salary xlsx normal
-	go constructSalaryXlsx(salaryMap, fmt.Sprintf("%s.%s", fileName, mConf.FileNameExtensions), xlsxC)
+	go constructSalaryXlsx(salaryMap, fmt.Sprintf("%s_区域.%s", fileName, mConf.FileNameExtensions), xlsxC)
 
 	//construct salary xlsx separate by risk
-	go constructSalaryRiskXlsx(salaryRiskMap, fmt.Sprintf("%s_不分区域.%s", fileName, mConf.FileNameExtensions), xlsxC)
+	go constructSalaryRiskXlsx(salaryRiskMap, fmt.Sprintf("%s.%s", fileName, mConf.FileNameExtensions), xlsxC)
 
 	//construct transfer information xlsx for no risk
 	go func() {
