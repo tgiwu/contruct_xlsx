@@ -444,21 +444,28 @@ func CalcFQ(staff *Staff, attendance *Attendance, salary *Salary) error {
 			salary.NetPay = 100 * attendance.Actal
 		}
 		//超出应出勤的天数每天100
-	case attendance.Duty <= attendance.Actal:
-		salary.NetPay = staff.Salary
-		salary.OvertimePay += 100 * (attendance.Actal - attendance.Duty)
+	// case attendance.Duty == attendance.Actal:
+	// 	salary.NetPay = staff.Salary + 200
+	// salary.OvertimePay += 100 * (attendance.Actal - attendance.Duty)
+	case attendance.Actal >= attendance.Duty:
+		salary.NetPay = staff.Salary + 100*(attendance.Actal-attendance.Duty)
 		//工作天数少于15天时按日工资结算
 	case attendance.Actal < 15:
 		salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
 	default:
-		//请假按1天100算
-		salary.NetPay = staff.Salary - (attendance.Duty-attendance.Actal)*100
+		salary.NetPay = staff.Salary / attendance.Duty * attendance.Actal
 
 	}
 	//范崎路加班每天100
 	salary.SpecialPay += int(attendance.Temp_4 * float64(ssMap["Temp_Guard_Cleaner"]))
 
 	err = calcAfter(staff, attendance, salary)
+	//modify should and standard
+	//hard code very ugly
+	if salary.Area == "范崎路" && salary.Name != "张阳" {
+		salary.Should = LastDayInMonth(mConf.Year, mConf.Month)
+		salary.Standard = staff.Salary + 200
+	}
 	if err != nil {
 		return err
 	}

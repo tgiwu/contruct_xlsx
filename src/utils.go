@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -178,4 +179,18 @@ func DeepCopy(src, dst interface{}) {
 			dstVal.Field(i).Set(fieldVal)
 		}
 	}
+}
+
+func LastDayInMonth(year int, month int) int {
+	if month > 12 && month <= 0 {
+		return -1
+	}
+
+	now := time.Now()
+	loc := now.Location()
+
+	date := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, loc)
+	date = date.AddDate(0, 1, -1)
+
+	return date.Day()
 }
