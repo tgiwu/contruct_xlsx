@@ -102,6 +102,10 @@ func main() {
 	}()
 	xlsxWG.Wait()
 
+	newStaffMap := make(map[string]int, 0)
+	CheckStaffLastMonth(&newStaffMap)
+	ConstructNewStaffFile(mConf.OutputPath, "新员工.xlsx", &attMap, &staffMap, &newStaffMap)
+
 	log.Infoln("all finish")
 }
 

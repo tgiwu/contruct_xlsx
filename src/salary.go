@@ -132,6 +132,9 @@ func buildSalaries2(staffs map[string]Staff, attendances map[string][]Attendance
 
 		for _, attendance := range attendances[key] {
 
+			if len(attendance.Name) == 0 {
+				continue
+			}
 			if len(mConf.Ignore) != 0 {
 				for _, ignore := range mConf.Ignore {
 					if ignore == attendance.Name {

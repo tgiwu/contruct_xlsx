@@ -3,6 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -20,6 +23,7 @@ const COL_STAFF_ACCOUNT = "收款账号"
 const COL_STAFF_BACKUP = "备注"
 const COL_STAFF_AREA = "区域"
 const COL_STAFF_IDCARD = "身份证号"
+const COL_STAFF_MOBILE = "联系电话"
 const COL_STAFF_IGNORE_RISK = "忽略风险"
 
 const COL_SS_TYPE = "类型"
@@ -47,6 +51,7 @@ type Staff struct {
 	QuitTime   string      //离职时间
 	BackUp     BackUpStaff //备注
 	IdCard     string      //身份证号
+	Mobile     string      //电话
 	Age        int         //年龄
 	Sex        int         //1:男，0：女
 	Calc       Calc        //工资计算方式
@@ -310,6 +315,8 @@ func visitRow(row *xlsx.Row, headerMap *map[int]string, staff *Staff) {
 				(*headerMap)[i] = "Area"
 			case COL_STAFF_IDCARD:
 				(*headerMap)[i] = "IdCard"
+			case COL_STAFF_MOBILE:
+				(*headerMap)[i] = "Mobile"
 			case COL_STAFF_IGNORE_RISK:
 				(*headerMap)[i] = "RiskIgnore"
 			case COL_STAFF_ROW_ID:
@@ -382,4 +389,84 @@ func ageAndSex(staff *Staff) {
 	}
 
 	staff.Age = age
+}
+
+func CheckStaffLastMonth(staffLastMonth *map[string]int) error {
+
+	lastMonth := time.Date(mConf.Year, time.Month(mConf.Month), 10, 0, 0, 0, 0, time.Now().Location()).AddDate(0, -1, 0)
+
+	fileNames := [2]string{
+		fmt.Sprintf("%d年%d月工资.xlsx", lastMonth.Year(), lastMonth.Month()),
+		fmt.Sprintf("%d年%d月工资_.xlsx", lastMonth.Year(), lastMonth.Month()),
+	}
+	for i, fileName := range fileNames {
+		path := filepath.Join(mConf.HistoryFolder, fileName)
+
+		_, err := os.Stat(path)
+		if err != nil {
+			log.Fatalf("read staff last month failed filePath is %s, try next \n", path)
+			continue
+		} else {
+			err = readLastMonthStaff(path, staffLastMonth)
+			if err != nil {
+				for k := range *staffLastMonth {
+					delete((*staffLastMonth), k)
+				}
+				log.Fatalf("read staff failed %v\n", err)
+			} else {
+				return nil
+			}
+
+		}
+
+		if i == len(fileNames)-1 {
+			return MyError{msg: "can not find salary file last month"}
+		}
+	}
+
+	return nil
+}
+
+func readLastMonthStaff(filePath string, staffLastMonth *map[string]int) error {
+
+	file, err := xlsx.OpenFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	for _, sheet := range file.Sheets {
+		readStaffNames(sheet, staffLastMonth)
+	}
+	return nil
+
+}
+
+func readStaffNames(sheet *xlsx.Sheet, staffLastMonth *map[string]int) {
+	nameColIndex := -1
+loop:
+	for i := range sheet.MaxRow {
+
+		if nameColIndex >= 0 {
+			cell, err := sheet.Cell(i, nameColIndex)
+			if err != nil || len(cell.Value) == 0 {
+				continue
+			}
+			(*staffLastMonth)[cell.Value] = 0
+		} else {
+
+			for j := range sheet.MaxCol {
+				cell, err := sheet.Cell(i, j)
+				if err != nil {
+					continue
+				}
+				if nameColIndex == -1 && cell.Value == "姓名" {
+					nameColIndex = j
+					continue loop
+
+				}
+			}
+		}
+
+	}
+
 }

@@ -463,3 +463,82 @@ func fillTransferinfoRows(excel *excelize.File, sheet string, transferInfos *[]T
 		}
 	}
 }
+
+func ConstructNewStaffFile(path string, fileName string, attMap *map[string][]Attendance,
+	staffMap *map[string]Staff, staffLastMonth *map[string]int) error {
+
+	excel := excelize.NewFile()
+
+	styleCellHeader, _ = excel.NewStyle(&excelize.Style{
+		Border: []excelize.Border{{Type: "left", Color: "#000000", Style: 1},
+			{Type: "right", Color: "#000000", Style: 1},
+			{Type: "top", Color: "#000000", Style: 1},
+			{Type: "bottom", Color: "#000000", Style: 1}},
+		Font:      &excelize.Font{Bold: true, Color: "#FFFFFF", Family: "Microsoft YaHei", Size: 14},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"#A5A5A5"}, Pattern: 1},
+	})
+
+	styleCellNormal, _ = excel.NewStyle(&excelize.Style{
+		Border: []excelize.Border{{Type: "left", Color: "#000000", Style: 1},
+			{Type: "right", Color: "#000000", Style: 1},
+			{Type: "top", Color: "#000000", Style: 1},
+			{Type: "bottom", Color: "#000000", Style: 1}},
+		Font:      &excelize.Font{Bold: false, Color: "#000000", Family: "宋体", Size: 14},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"#FFFFFF"}, Pattern: 1},
+	})
+
+	_, err := excel.NewSheet("新员工")
+	if err != nil {
+		log.Fatalf("create sheet NewStaff failed \n, %v", err)
+	}
+
+	fillNewStaffHeaders(excel, "新员工", &[]string{"序号", "姓名", "身份证号", "电话"})
+	newStaffs := make([]Staff, 0)
+	for _, atts := range *attMap {
+		for _, att := range atts {
+			if len(att.Name) == 0 {
+				continue
+			}
+			if _, found := (*staffLastMonth)[att.Name]; !found {
+				newStaffs = append(newStaffs, (*staffMap)[att.Name])
+			}
+		}
+	}
+
+	if len(newStaffs) == 0 {
+		log.Infoln("there is no new staffs")
+		return nil
+	}
+
+	fillNewStaffTable(excel, "新员工", &newStaffs)
+	excel.DeleteSheet("Sheet1")
+	delFileIfExist(mConf.OutputPath, "NewStaff.xlsx")
+	excel.SaveAs(filepath.Join(path, "NewStaff.xlsx"))
+	return nil
+}
+
+func fillNewStaffHeaders(excel *excelize.File, sheetName string, headers *[]string) {
+	for i, headerStr := range *headers {
+		excel.SetCellStr(sheetName, pos(0, i), headerStr)
+		excel.SetCellStyle(sheetName, pos(0, 0), pos(0, len(*headers)-1), styleCellHeader)
+	}
+
+}
+
+func fillNewStaffTable(excel *excelize.File, sheetName string, staffs *[]Staff) error {
+
+	for i, staff := range *staffs {
+		excel.SetCellInt(sheetName, pos(i+1, 0), int64(i+1))
+		excel.SetCellStr(sheetName, pos(i+1, 1), staff.Name)
+		excel.SetCellStr(sheetName, pos(i+1, 2), staff.IdCard)
+		excel.SetCellStr(sheetName, pos(i+1, 3), staff.Mobile)
+		excel.SetCellStyle(sheetName, pos(i+1, 0), pos(i+1, 3), styleCellNormal)
+	}
+
+	excel.SetColWidth(sheetName, pos(-1, 0), pos(-1, 1), 15)
+	excel.SetColWidth(sheetName, pos(-1, 2), pos(-1, 3), 28.83)
+
+	return nil
+}

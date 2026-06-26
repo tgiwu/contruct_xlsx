@@ -19,6 +19,7 @@ var CONFIG_COMMON_PATH = ""
 type config struct {
 	AttendanceFolder             string   `mapstructure:"attendance_folder"`
 	StaffFilePath                string   `mapstructure:"staff_file_path"`
+	HistoryFolder                string   `mapstructure:"history_folder"`
 	Ignore                       []string `mapstructure:"ignore"`
 	OutputPath                   string   `mapstructure:"output_path"`
 	FileName                     string   `mapstructure:"file_name"`
@@ -80,7 +81,6 @@ func readConfig() {
 	bs, err := os.ReadFile(filepath.Join(CONFIG_PATH, configName+".yaml"))
 
 	vip.MergeConfig(bytes.NewReader(bs))
-
 	if err != nil {
 		panic(err)
 	}
