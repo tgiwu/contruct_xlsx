@@ -90,20 +90,9 @@ func buildSalaries2(staffs map[string]Staff, attendances map[string][]Attendance
 	areaToSumRowMap := make(map[string]Salary, len(attendances))
 
 	//table area construct sum Formula
-	// indexStandard, indexNetPay, indexAccount := 0, 0, 0
 	indexStandard := slices.Index(mConf.Headers, "应发工资")
 	indexNetPay := slices.Index(mConf.Headers, "实发工资")
 	indexAccount := slices.Index(mConf.Headers, "合计")
-	// for i, s := range mConf.Headers {
-	// 	switch s {
-	// 	case "应发工资":
-	// 		indexStandard = i
-	// 	case "实发工资":
-	// 		indexNetPay = i
-	// 	case "合计":
-	// 		indexAccount = i
-	// 	}
-	// }
 
 	for k := range attendances {
 		keys = append(keys, k)
@@ -284,17 +273,8 @@ func buildSalaries2(staffs map[string]Staff, attendances map[string][]Attendance
 		StaffId: 999,
 	}
 	// person sum Formula
-	// totalAccountIndex, totalPersonIndex := 0, 0
 	totalAccountIndex := slices.Index(mConf.OverviewHeader, "总计费用")
 	totalPersonIndex := slices.Index(mConf.OverviewHeader, "发放人数")
-	// for i, s := range mConf.OverviewHeader {
-	// 	switch s {
-	// 	case "总计费用":
-	// 		totalAccountIndex = i
-	// 	case "发放人数":
-	// 		totalPersonIndex = i
-	// 	}
-	// }
 
 	overviewSumRow.TotalAccount = fmt.Sprintf("=SUM(%s:%s)", pos(2, totalAccountIndex), pos(len(overviewAreaRows)+1, totalAccountIndex))
 	overviewSumRow.TotalPerson = fmt.Sprintf("=SUM(%s:%s)", pos(2, totalPersonIndex), pos(len(overviewAreaRows)+1, totalPersonIndex))
@@ -312,18 +292,6 @@ func recalcAccountRowFormula(items *[]Salary, start int) {
 	sumStart := slices.Index(mConf.Headers, "实发工资")
 	sumEnd := slices.Index(mConf.Headers, "特殊费用")
 	deduction := slices.Index(mConf.Headers, "扣款")
-
-	// sumStart, sumEnd, deduction := 0, 0, 0
-	// for i, s := range mConf.Headers {
-	// 	switch s {
-	// 	case "实发工资":
-	// 		sumStart = i
-	// 	case "特殊费用":
-	// 		sumEnd = i
-	// 	case "扣款":
-	// 		deduction = i
-	// 	}
-	// }
 
 	for i := range *items {
 		(*items)[i].AccountFormula = fmt.Sprintf("=SUM(%s:%s) - %s", pos(i+start, sumStart),
@@ -402,21 +370,15 @@ func calcAfter(staff *Staff, attendance *Attendance, salary *Salary) error {
 	sumStart := slices.Index(mConf.Headers, "实发工资")
 	sumEnd := slices.Index(mConf.Headers, "特殊费用")
 	deduction := slices.Index(mConf.Headers, "扣款")
-	// sumStart, sumEnd, deduction := 0, 0, 0
-	// for i, s := range mConf.Headers {
-	// 	switch s {
-	// 	case "实发工资":
-	// 		sumStart = i
-	// 	case "特殊费用":
-	// 		sumEnd = i
-	// 	case "扣款":
-	// 		deduction = i
-	// 	}
-	// }
 
 	salary.AccountFormula = fmt.Sprintf("=SUM(%s:%s) - %s", pos(salary.Id+1, sumStart), pos(salary.Id+1, sumEnd), pos(salary.Id+1, deduction))
 	salary.Area = staff.Area
-	salary.BackUp = attendance.Backup
+	if len(attendance.Backup) != 0 {
+		if len(salary.BackUp) != 0 {
+			salary.BackUp += ";"
+		}
+		salary.BackUp += attendance.Backup
+	}
 	if strings.HasPrefix(staff.Account, "00000") {
 		if len(salary.BackUp) != 0 {
 			salary.BackUp += ";"
@@ -446,10 +408,7 @@ func CalcFQ(staff *Staff, attendance *Attendance, salary *Salary) error {
 		} else {
 			salary.NetPay = 100 * attendance.Actal
 		}
-		//超出应出勤的天数每天100
-	// case attendance.Duty == attendance.Actal:
-	// 	salary.NetPay = staff.Salary + 200
-	// salary.OvertimePay += 100 * (attendance.Actal - attendance.Duty)
+
 	case attendance.Actal >= attendance.Duty:
 		salary.NetPay = staff.Salary + 100*(attendance.Actal-attendance.Duty)
 		//工作天数少于15天时按日工资结算
@@ -557,8 +516,23 @@ func CalcCommon(staff *Staff, attendance *Attendance, salary *Salary) error {
 	}
 	salary.SpecialPay += attendance.Temp_12 * ssMap["Temp_12"]
 	salary.SpecialPay += int(math.Round(attendance.Temp_4 * float64(ssMap["Temp_4"])))
+	salary.SpecialPay += int(math.Round(attendance.Temp_2 * float64(ssMap["Temp_2"])))
 	salary.SpecialPay += attendance.Temp_8 * ssMap["Temp_8"]
 
+	//add temp backup
+	if attendance.Temp_4 != 0 {
+		if len(salary.BackUp) != 0 {
+			salary.BackUp += ";"
+		}
+		salary.BackUp += fmt.Sprintf("4小时加班%d班，80元/班", int(attendance.Temp_4))
+	}
+
+	if attendance.Temp_2 != 0 {
+		if len(salary.BackUp) != 0 {
+			salary.BackUp += ";"
+		}
+		salary.BackUp += fmt.Sprintf("2小时加班%d班，40元每班", int(attendance.Temp_2))
+	}
 	err = calcAfter(staff, attendance, salary)
 	if err != nil {
 		return err

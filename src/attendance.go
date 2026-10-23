@@ -15,6 +15,7 @@ type Attendance struct {
 	Temp_8           int     //8小时临勤
 	Temp_12          int     //12小时临勤；外派人员法定节假日
 	Temp_4           float64 //4小时临勤；加班
+	Temp_2           float64 //2小时临勤；加班
 	Sickness         int     //病假
 	Special          int     //特殊费用
 	Deduction        int     //扣款，可能是社保或罚款
@@ -84,6 +85,8 @@ func visitorRow(row *xlsx.Row, attendance *Attendance, headerMap *map[int]string
 				(*headerMap)[i] = "Temp_12"
 			case "临勤（4）":
 				(*headerMap)[i] = "Temp_4"
+			case "临勤（2）":
+				(*headerMap)[i] = "Temp_2"
 			case "病假":
 				(*headerMap)[i] = "Sickness"
 			case "特殊费用":
@@ -103,7 +106,7 @@ func visitorRow(row *xlsx.Row, attendance *Attendance, headerMap *map[int]string
 			}
 		} else {
 			val, _ := strconv.Atoi(str)
-			f,_ := strconv.ParseFloat(str, 64)
+			f, _ := strconv.ParseFloat(str, 64)
 			refType := reflect.TypeOf(*attendance)
 			if refType.Kind() != reflect.Struct {
 				panic("not struct")
