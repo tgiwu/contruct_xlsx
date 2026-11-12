@@ -66,9 +66,16 @@ func main() {
 
 	wg.Wait()
 
+	//read staff names for salary risk sorting
+	newStaffMap := make(map[string]int, 0)
+	namesList := make([][]string, 2)
+	namesList[0] = make([]string, 0)
+	namesList[1] = make([]string, 0)
+	CheckStaffLastMonth(&newStaffMap, &namesList)
+
 	log.Infoln("--------------------read finish--------------------")
 
-	err = buildSalaries2(staffMap, attMap, &salaryMap, &salaryRiskMap)
+	err = buildSalaries2(staffMap, attMap, &salaryMap, &salaryRiskMap, &namesList)
 
 	if err != nil {
 		log.Panic(" build salary map failed " + err.Error())
@@ -102,8 +109,6 @@ func main() {
 	}()
 	xlsxWG.Wait()
 
-	newStaffMap := make(map[string]int, 0)
-	CheckStaffLastMonth(&newStaffMap)
 	ConstructNewStaffFile(mConf.OutputPath, "新员工.xlsx", &attMap, &staffMap, &newStaffMap)
 
 	log.Infoln("all finish")

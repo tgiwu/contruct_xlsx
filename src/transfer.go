@@ -52,8 +52,5 @@ func buildTransferInfo(salaryMap map[string][]Salary, staffs map[string]Staff, t
 
 	}
 
-	slices.SortFunc(*transferInfos, func(t1, t2 TransferInfo) int {
-		return t1.Index - t2.Index
-	})
 	return nil
 }

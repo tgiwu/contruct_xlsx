@@ -27,7 +27,8 @@ type Salary struct {
 	Area           string //区域，用于分组
 	SalaryTotal           //合计行
 	//todo: 写入表之前不能确定具体位置，暂时只能绑定列名
-	ErrorMap map[string]string //错误批注，如有错误单元格标红并添加批注;key:列名；value：错误描述
+	ErrorMap     map[string]string //错误批注，如有错误单元格标红并添加批注;key:列名；value：错误描述
+	CompanyIndex int               //标识不同公司
 }
 
 type SalaryTotal struct {
@@ -80,7 +81,7 @@ func (sbe SalaryBuildError) Error() string {
 }
 
 func buildSalaries2(staffs map[string]Staff, attendances map[string][]Attendance,
-	salaryMap *map[string][]Salary, salaryRiskMap *map[string][]Salary) error {
+	salaryMap *map[string][]Salary, salaryRiskMap *map[string][]Salary, nameList *[][]string) error {
 
 	keys := make([]string, 0, len(attendances))
 
@@ -243,9 +244,41 @@ func buildSalaries2(staffs map[string]Staff, attendances map[string][]Attendance
 
 	for key := range *salaryRiskMap {
 		list := (*salaryRiskMap)[key]
+		//
 		slices.SortFunc(list, func(s1, s2 Salary) int {
 			return s1.StaffId - s2.StaffId
 		})
+		if key == "无风险人员" {
+
+			staffInCompany_1 := (*nameList)[0]
+			staffInCompany_2 := (*nameList)[1]
+
+			templist_company_1 := make([]Salary, 0)
+			templist_company_2 := make([]Salary, 0)
+			templist_new := make([]Salary, 0)
+
+			for _, salary := range list {
+				if slices.Index(staffInCompany_1, salary.Name) != -1 {
+					salary.CompanyIndex = 0
+					templist_company_1 = append(templist_company_1, salary)
+				} else if slices.Index(staffInCompany_2, salary.Name) != -1 {
+					salary.CompanyIndex = 1
+					templist_company_2 = append(templist_company_2, salary)
+				} else {
+					salary.CompanyIndex = 1
+					templist_new = append(templist_new, salary)
+				}
+			}
+
+			for len(templist_company_1) < 30 && len(templist_new) != 0 {
+				sa := templist_new[0]
+				sa.CompanyIndex = 0
+				templist_company_1 = append(templist_company_1, sa)
+				templist_new = templist_new[1:]
+			}
+
+			list = slices.Concat(templist_company_1, templist_company_2, templist_new)
+		}
 
 		recalcAccountRowFormula(&list, 2)
 		riskSumRow := Salary{StaffId: 999,
@@ -256,7 +289,7 @@ func buildSalaries2(staffs map[string]Staff, attendances map[string][]Attendance
 		riskSumRow.TotalNetPay = fmt.Sprintf("=SUM(%s:%s)", pos(2, indexNetPay), pos(len(list)+1, indexNetPay))
 		riskSumRow.TotalAccount = fmt.Sprintf("=SUM(%s:%s)", pos(2, indexAccount), pos(len(list)+1, indexAccount))
 		riskSumRow.TotalP = len(list)
-		list = append((*salaryRiskMap)[key], riskSumRow)
+		list = append(list, riskSumRow)
 
 		(*salaryRiskMap)[key] = list
 	}

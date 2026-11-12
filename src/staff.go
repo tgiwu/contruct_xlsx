@@ -391,43 +391,35 @@ func ageAndSex(staff *Staff) {
 	staff.Age = age
 }
 
-func CheckStaffLastMonth(staffLastMonth *map[string]int) error {
+func CheckStaffLastMonth(staffLastMonth *map[string]int, nameList *[][]string) error {
 
 	lastMonth := time.Date(mConf.Year, time.Month(mConf.Month), 10, 0, 0, 0, 0, time.Now().Location()).AddDate(0, -1, 0)
+	fileName := fmt.Sprintf("%d年%d月工资.xlsx", lastMonth.Year(), lastMonth.Month())
 
-	fileNames := [2]string{
-		fmt.Sprintf("%d年%d月工资.xlsx", lastMonth.Year(), lastMonth.Month()),
-		fmt.Sprintf("%d年%d月工资_.xlsx", lastMonth.Year(), lastMonth.Month()),
-	}
-	for i, fileName := range fileNames {
-		path := filepath.Join(mConf.HistoryFolder, fileName)
+	path := filepath.Join(mConf.HistoryFolder, fileName)
 
-		_, err := os.Stat(path)
+	_, err := os.Stat(path)
+	if err != nil {
+		log.Fatalf("read staff last month failed filePath is %s, try next \n", path)
+		return MyError{msg: "can not find salary file last month"}
+		// continue
+	} else {
+		err = readLastMonthStaff(path, staffLastMonth, nameList)
 		if err != nil {
-			log.Fatalf("read staff last month failed filePath is %s, try next \n", path)
-			continue
-		} else {
-			err = readLastMonthStaff(path, staffLastMonth)
-			if err != nil {
-				for k := range *staffLastMonth {
-					delete((*staffLastMonth), k)
-				}
-				log.Fatalf("read staff failed %v\n", err)
-			} else {
-				return nil
+			for k := range *staffLastMonth {
+				delete((*staffLastMonth), k)
 			}
-
+			log.Fatalf("read staff failed %v\n", err)
+		} else {
+			return nil
 		}
 
-		if i == len(fileNames)-1 {
-			return MyError{msg: "can not find salary file last month"}
-		}
 	}
 
 	return nil
 }
 
-func readLastMonthStaff(filePath string, staffLastMonth *map[string]int) error {
+func readLastMonthStaff(filePath string, staffLastMonth *map[string]int, nameList *[][]string) error {
 
 	file, err := xlsx.OpenFile(filePath)
 	if err != nil {
@@ -435,13 +427,13 @@ func readLastMonthStaff(filePath string, staffLastMonth *map[string]int) error {
 	}
 
 	for _, sheet := range file.Sheets {
-		readStaffNames(sheet, staffLastMonth)
+		readStaffNames(sheet, staffLastMonth, nameList)
 	}
 	return nil
 
 }
 
-func readStaffNames(sheet *xlsx.Sheet, staffLastMonth *map[string]int) {
+func readStaffNames(sheet *xlsx.Sheet, staffLastMonth *map[string]int, nameList *[][]string) {
 	nameColIndex := -1
 loop:
 	for i := range sheet.MaxRow {
@@ -452,6 +444,20 @@ loop:
 				continue
 			}
 			(*staffLastMonth)[cell.Value] = 0
+			switch cell.GetStyle().Fill.FgColor {
+			case "FF00B050":
+				l := (*nameList)[0]
+				l = append(l, cell.Value)
+				(*nameList)[0] = l
+			case "FFFFFF00":
+				l := (*nameList)[1]
+				l = append(l, cell.Value)
+				(*nameList)[1] = l
+			default:
+			}
+
+			//keep order origin
+			// *nameList = append(*nameList, cell.Value)
 		} else {
 
 			for j := range sheet.MaxCol {

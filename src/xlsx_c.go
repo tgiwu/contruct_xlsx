@@ -26,12 +26,14 @@ const TYPE_ROW_NORMAL_GREY = 3
 const TYPE_ROW_TOTAL = 4
 
 var (
-	styleCellTitle  int
-	styleCellHeader int
-	styleCellNormal int
-	styleCellGrey   int
-	styleCellTotal  int
-	styleCellErr    int
+	styleCellTitle    int
+	styleCellHeader   int
+	styleCellNormal   int
+	styleCellGrey     int
+	styleCellTotal    int
+	styleCellErr      int
+	styleCellCompany1 int
+	styleCellCompany2 int
 )
 
 type EmptyError struct {
@@ -101,6 +103,24 @@ func setUpCellStyle(excel *excelize.File) {
 		Font:      &excelize.Font{Bold: true, Color: "#000000", Family: "宋体", Size: 14},
 		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
 		Fill:      excelize.Fill{Type: "pattern", Color: []string{"#FF0000"}, Pattern: 1},
+	})
+	styleCellCompany1, _ = excel.NewStyle(&excelize.Style{
+		Border: []excelize.Border{{Type: "left", Color: "#000000", Style: 1},
+			{Type: "right", Color: "#000000", Style: 1},
+			{Type: "top", Color: "#000000", Style: 1},
+			{Type: "bottom", Color: "#000000", Style: 1}},
+		Font:      &excelize.Font{Bold: false, Color: "#000000", Family: "宋体", Size: 14},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"#00B050"}, Pattern: 1},
+	})
+	styleCellCompany2, _ = excel.NewStyle(&excelize.Style{
+		Border: []excelize.Border{{Type: "left", Color: "#000000", Style: 1},
+			{Type: "right", Color: "#000000", Style: 1},
+			{Type: "top", Color: "#000000", Style: 1},
+			{Type: "bottom", Color: "#000000", Style: 1}},
+		Font:      &excelize.Font{Bold: false, Color: "#000000", Family: "宋体", Size: 14},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"#FFFF00"}, Pattern: 1},
 	})
 
 }
@@ -320,6 +340,11 @@ func fillRow(excel *excelize.File, sheetName string, salaries []Salary) {
 				//
 				if mConf.HeadersRiskMap[s] == "RowId" {
 					excel.SetCellInt(sheetName, pos(i+2, j), int64(i+1))
+					if i%2 == 0 {
+						excel.SetCellStyle(sheetName, pos(i+2, j), pos(i+2, j), styleCellNormal)
+					} else {
+						excel.SetCellStyle(sheetName, pos(i+2, j), pos(i+2, j), styleCellGrey)
+					}
 					continue
 				}
 				kind := value.Kind()
@@ -337,9 +362,20 @@ func fillRow(excel *excelize.File, sheetName string, salaries []Salary) {
 				}
 			}
 			if i%2 == 0 {
-				excel.SetCellStyle(sheetName, pos(i+2, j-1), pos(i+2, j), styleCellNormal)
+				excel.SetCellStyle(sheetName, pos(i+2, j), pos(i+2, j), styleCellNormal)
 			} else {
-				excel.SetCellStyle(sheetName, pos(i+2, j-1), pos(i+2, j), styleCellGrey)
+				excel.SetCellStyle(sheetName, pos(i+2, j), pos(i+2, j), styleCellGrey)
+			}
+
+			if mConf.HeadersRiskMap[s] == "Name" {
+				switch salary.CompanyIndex {
+				case 0:
+					excel.SetCellStyle(sheetName, pos(i+2, j), pos(i+2, j), styleCellCompany1)
+				case 1:
+					excel.SetCellStyle(sheetName, pos(i+2, j), pos(i+2, j), styleCellCompany2)
+				}
+			} else {
+
 			}
 
 			if len(salary.ErrorMap) > 0 {
