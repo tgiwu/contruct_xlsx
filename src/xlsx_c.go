@@ -367,7 +367,7 @@ func fillRow(excel *excelize.File, sheetName string, salaries []Salary) {
 				excel.SetCellStyle(sheetName, pos(i+2, j), pos(i+2, j), styleCellGrey)
 			}
 
-			if mConf.HeadersRiskMap[s] == "Name" {
+			if mConf.HeadersRiskMap[s] == "Name" && sheetName == "无风险人员" {
 				switch salary.CompanyIndex {
 				case 0:
 					excel.SetCellStyle(sheetName, pos(i+2, j), pos(i+2, j), styleCellCompany1)

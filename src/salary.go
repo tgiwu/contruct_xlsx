@@ -457,9 +457,13 @@ func CalcFQ(staff *Staff, attendance *Attendance, salary *Salary) error {
 	err = calcAfter(staff, attendance, salary)
 	//modify should and standard
 	//hard code very ugly
-	if salary.Area == "范崎路" && salary.Name != "张阳" {
+	if salary.Area == "范崎路" && salary.Name != "张阳" && !strings.Contains(salary.BackUp, "固定") {
 		salary.Should = LastDayInMonth(mConf.Year, mConf.Month)
 		salary.Standard = staff.Salary + 200
+	} else if strings.Contains(salary.BackUp, "固定") {
+		salary.Should = LastDayInMonth(mConf.Year, mConf.Month)
+		salary.Actual = salary.Should
+		salary.NetPay = staff.Salary
 	}
 	if err != nil {
 		return err
