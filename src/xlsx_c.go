@@ -40,7 +40,7 @@ type EmptyError struct {
 	msg string
 }
 
-func (ee EmptyError) Error() string {
+func (ee *EmptyError) Error() string {
 	return ee.msg
 }
 
